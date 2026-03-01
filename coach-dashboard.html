@@ -98,23 +98,23 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Check if user is logged in as coach
-            const isLoggedIn = localStorage.getItem('isLoggedIn');
-            const userType = localStorage.getItem('userType');
-            const username = localStorage.getItem('username');
-            
-            if (!isLoggedIn || userType !== 'coach') {
+            if (!Api.isLoggedIn()) {
                 window.location.href = 'login.html';
                 return;
             }
+            const currentUser = Api.getCurrentUser();
+            if (!currentUser || currentUser.role !== 'coach') {
+                Api.logout();
+                return;
+            }
+            const username = currentUser.username;
 
-            // Get coach data from localStorage
-            const coachData = JSON.parse(localStorage.getItem('coachData') || '{}');
-            const userData = JSON.parse(localStorage.getItem('userData_' + username) || '{}');
-            
-            // Use coach data or fall back to user data
-            const coachName = coachData.name || userData.name || username;
-            const coachTitle = coachData.title || userData.title || 'Chess Coach';
-            const coachExpertise = coachData.expertise || userData.expertise || 'General Chess Training';
+            // Get coach profile from session
+            const coachName = (currentUser.profile && currentUser.profile.name) || username;
+            const coachTitle = (currentUser.profile && currentUser.profile.title) || 'Chess Coach';
+            const coachExpertise = (currentUser.expertise && currentUser.expertise.length)
+                ? currentUser.expertise.join(', ')
+                : 'General Chess Training';
             
             // Update header with coach's name
             document.querySelector('.dashboard-header h1').textContent = 

@@ -945,50 +945,51 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             // Check if user is logged in as student
-            const isLoggedIn = localStorage.getItem('isLoggedIn');
-            const userType = localStorage.getItem('userType');
-            const username = localStorage.getItem('username');
-            
-            if (!isLoggedIn || userType !== 'student') {
+            if (!Api.isLoggedIn()) {
                 window.location.href = 'login.html';
                 return;
             }
-
-            // Get student data from localStorage
-            const studentData = JSON.parse(localStorage.getItem('studentData') || '{}');
-            const userData = JSON.parse(localStorage.getItem('userData_' + username) || '{}');
-            
-            // Use student data or fall back to user data
-            studentName = studentData.name || userData.name || username;
-            // --- Multi-coach support ---
-            let studentCoaches = studentData.coaches || userData.coaches || [];
-            if (!Array.isArray(studentCoaches)) {
-                studentCoaches = [studentData.coach || userData.coach || 'Available Coach'];
+            const currentUser = Api.getCurrentUser();
+            if (!currentUser || currentUser.role !== 'student') {
+                Api.logout();
+                return;
             }
-            studentCoach = studentCoaches[0] || 'Available Coach'; // Assuming the first coach is the primary
-            const studentRating = studentData.rating || userData.rating || 1200;
+            const username = currentUser.username;
 
-            // Find coach username by matching name (assume unique coach names)
+            // Get student info from session
+            studentName = (currentUser.profile && currentUser.profile.name) || username;
+            const studentRating = (currentUser.profile && currentUser.profile.rating) || 1200;
+
+            // Get coach info from the populated coach field returned by login
+            const coachObj = currentUser.coach;
+            if (coachObj) {
+                studentCoach = (coachObj.profile && coachObj.profile.name) || coachObj.username;
+                coachUsername = coachObj.username;
+            } else {
+                studentCoach = 'No coach assigned';
+                coachUsername = null;
+            }
+
+            // Resolve coach username by name — checks API coach first, then localStorage legacy data
             function getCoachUsername(coachName) {
+                if (coachObj && (coachObj.username === coachName ||
+                    (coachObj.profile && coachObj.profile.name === coachName))) {
+                    return coachObj.username;
+                }
                 const keys = Object.keys(localStorage);
-                const userKeys = keys.filter(key => key.startsWith('userData_'));
-                for (const key of userKeys) {
+                for (const key of keys.filter(k => k.startsWith('userData_'))) {
                     const user = JSON.parse(localStorage.getItem(key));
-                    if (user && user.userType === 'coach' && (user.name === coachName || user.username === coachName)) {
+                    if (user && user.userType === 'coach' &&
+                        (user.name === coachName || user.username === coachName)) {
                         return user.username;
                     }
                 }
-                // Fallback: try demo coach
-                if (coachName === 'Alex Kolay') return 'chessboss2020';
                 return null;
             }
-            coachUsername = getCoachUsername(studentCoach);
 
             // Set student information
             document.getElementById('student-name').textContent = studentName;
-            // Show all joined coaches as a comma-separated list
-            const coachNames = studentCoaches.join(', ');
-            document.getElementById('coach-name').textContent = coachNames || 'Available Coach';
+            document.getElementById('coach-name').textContent = studentCoach;
 
             // --- Notification Display ---
             function renderNotifications() {
@@ -1578,42 +1579,7 @@
                 }
             };
 
-            // Create demo coach if no coaches exist
-            function createDemoCoach() {
-                const keys = Object.keys(localStorage);
-                const userKeys = keys.filter(key => key.startsWith('userData_'));
-                let hasCoaches = false;
-                
-                userKeys.forEach(key => {
-                    try {
-                        const userData = JSON.parse(localStorage.getItem(key));
-                        if (userData && userData.userType === 'coach') {
-                            hasCoaches = true;
-                        }
-                    } catch (e) {
-                        // Ignore corrupted data
-                    }
-                });
-                
-                if (!hasCoaches) {
-                    console.log('No coaches found, creating demo coach');
-                    const demoCoach = {
-                        username: 'demo_coach',
-                        name: 'Demo Coach',
-                        email: 'demo@chesscoaching.com',
-                        userType: 'coach',
-                        title: 'FIDE Master',
-                        specialization: 'Opening Preparation, Middlegame Strategy'
-                    };
-                    localStorage.setItem('userData_demo_coach', JSON.stringify(demoCoach));
-                    console.log('Demo coach created:', demoCoach);
-                } else {
-                    console.log('Coaches already exist in the system');
-                }
-            }
-            
             // Initial setup
-            createDemoCoach();
             updateWeekDisplay();
             renderAvailableSlots();
 
