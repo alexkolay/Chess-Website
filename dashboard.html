@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Chess Coaching</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 100px auto;
+            padding: 0 20px;
+        }
+        
+        .welcome-section {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        
+        .welcome-section h1 {
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .dashboard-card {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .dashboard-card h2 {
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+        
+        .lesson-list {
+            list-style: none;
+        }
+        
+        .lesson-item {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        
+        .lesson-item h3 {
+            margin-bottom: 5px;
+            color: var(--dark);
+        }
+        
+        .lesson-item p {
+            margin: 5px 0;
+            color: #666;
+        }
+        
+        .action-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-top: 10px;
+            transition: background 0.3s ease;
+        }
+        
+        .action-btn:hover {
+            background: #2196f3;
+        }
+        
+        .logout-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #dc3545;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-top: 20px;
+            transition: background 0.3s ease;
+        }
+        
+        .logout-btn:hover {
+            background: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar__container">
+            <a href="index.html" id="navbar__logo">Alex Kolay Chess</a>
+            <div class="navbar__menu">
+                <li class="navbar__btn">
+                    <a href="#" class="button" onclick="logout()">Logout</a>
+                </li>
+            </div>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        <div class="welcome-section">
+            <h1>Welcome, <span id="username"></span>!</h1>
+            <p id="role-display"></p>
+        </div>
+
+        <div id="coach-dashboard" style="display: none;">
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                    <h2>Upcoming Lessons</h2>
+                    <div class="lesson-list">
+                        <div class="lesson-item">
+                            <h3>Beginner Opening Strategy</h3>
+                            <p>Student: John Doe</p>
+                            <p>Date: Tomorrow, 3:00 PM</p>
+                            <p>Duration: 1 hour</p>
+                        </div>
+                        <div class="lesson-item">
+                            <h3>Advanced Endgame Techniques</h3>
+                            <p>Student: Jane Smith</p>
+                            <p>Date: Friday, 4:00 PM</p>
+                            <p>Duration: 1 hour</p>
+                        </div>
+                    </div>
+                    <a href="#" class="action-btn">Schedule New Lesson</a>
+                </div>
+                <div class="dashboard-card">
+                    <h2>Student Progress</h2>
+                    <div class="lesson-list">
+                        <div class="lesson-item">
+                            <h3>John Doe</h3>
+                            <p>Rating: 1500</p>
+                            <p>Lessons Completed: 12</p>
+                            <p>Areas of Focus: Openings</p>
+                        </div>
+                        <div class="lesson-item">
+                            <h3>Jane Smith</h3>
+                            <p>Rating: 1800</p>
+                            <p>Lessons Completed: 8</p>
+                            <p>Areas of Focus: Endgame</p>
+                        </div>
+                    </div>
+                    <a href="#" class="action-btn">View All Students</a>
+                </div>
+            </div>
+        </div>
+
+        <div id="student-dashboard" style="display: none;">
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                    <h2>My Lessons</h2>
+                    <div class="lesson-list">
+                        <div class="lesson-item">
+                            <h3>Opening Strategy</h3>
+                            <p>Coach: Alex Kolay</p>
+                            <p>Date: Tomorrow, 3:00 PM</p>
+                            <p>Duration: 1 hour</p>
+                        </div>
+                    </div>
+                    <a href="#" class="action-btn">Book New Lesson</a>
+                </div>
+                <div class="dashboard-card">
+                    <h2>My Progress</h2>
+                    <div class="lesson-list">
+                        <div class="lesson-item">
+                            <h3>Current Rating: 1500</h3>
+                            <p>Lessons Completed: 5</p>
+                            <p>Hours Practiced: 10</p>
+                            <p>Next Goal: Master basic endgames</p>
+                        </div>
+                    </div>
+                    <a href="#" class="action-btn">View Full Progress</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check if user is logged in
+        window.onload = function() {
+            const username = localStorage.getItem('username');
+            const userRole = localStorage.getItem('userRole');
+            
+            if (!username || !userRole) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            // Display username and role
+            document.getElementById('username').textContent = username;
+            document.getElementById('role-display').textContent = 
+                `You are logged in as a ${userRole}`;
+            
+            // Show appropriate dashboard
+            if (userRole === 'coach') {
+                document.getElementById('coach-dashboard').style.display = 'block';
+            } else {
+                document.getElementById('student-dashboard').style.display = 'block';
+            }
+        };
+        
+        // Logout function
+        function logout() {
+            localStorage.removeItem('username');
+            localStorage.removeItem('userRole');
+            window.location.href = 'login.html';
+        }
+    </script>
+</body>
+</html> 

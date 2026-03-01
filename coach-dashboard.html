@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coach Dashboard - Chess Coaching Platform</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar__container">
+            <a href="index.html" id="navbar__logo">Chess Coaching Platform</a>
+            <div class="navbar__toggle" id="mobile-menu">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+            <ul class="navbar__menu">
+                <li class="navbar__item">
+                    <a href="coach-schedule.html" class="navbar__links">Schedule</a>
+                </li>
+                <li class="navbar__item">
+                    <a href="#" id="logout-btn" class="navbar__links">Logout</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <section class="dashboard-section">
+            <div class="chess-pattern"></div>
+            <div class="dashboard__container">
+                <div class="dashboard-header">
+                    <h1>Welcome Back, Coach</h1>
+                    <p class="specialization">Specialization: Chess Training</p>
+                    <p class="last-login">Last login: <span id="last-login-time"></span></p>
+                </div>
+
+                <div class="dashboard-grid">
+                    <!-- Quick Stats -->
+                    <div class="dashboard-card stats-card">
+                        <h2>Quick Stats</h2>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <h3>Active Students</h3>
+                                <p id="active-students-count">0</p>
+                            </div>
+                            <div class="stat-item">
+                                <h3>Upcoming Lessons</h3>
+                                <p id="upcoming-lessons-count">0</p>
+                            </div>
+                            <div class="stat-item">
+                                <h3>Pending Requests</h3>
+                                <p id="pending-requests-count">0</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Today's Schedule -->
+                    <div class="dashboard-card">
+                        <h2>Today's Schedule</h2>
+                        <div class="lesson-list" id="today-lessons">
+                            <p>Loading today's schedule...</p>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="dashboard-card">
+                        <h2>Quick Actions</h2>
+                        <div class="action-grid">
+                            <a href="coach-schedule.html" class="action-button" role="button">
+                                <span class="action-icon">📝</span>
+                                Schedule Lesson
+                            </a>
+                            <a href="lesson-requests.html" class="action-button" role="button">
+                                <span class="action-icon">📋</span>
+                                Lesson Requests
+                            </a>
+                            <a href="mailto:student@example.com" class="action-button" id="message-students" role="button">
+                                <span class="action-icon">📧</span>
+                                Message Students
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="footer__container">
+            <p>&copy; 2024 Chess Coaching Platform. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if user is logged in as coach
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            const userType = localStorage.getItem('userType');
+            const username = localStorage.getItem('username');
+            
+            if (!isLoggedIn || userType !== 'coach') {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Get coach data from localStorage
+            const coachData = JSON.parse(localStorage.getItem('coachData') || '{}');
+            const userData = JSON.parse(localStorage.getItem('userData_' + username) || '{}');
+            
+            // Use coach data or fall back to user data
+            const coachName = coachData.name || userData.name || username;
+            const coachTitle = coachData.title || userData.title || 'Chess Coach';
+            const coachExpertise = coachData.expertise || userData.expertise || 'General Chess Training';
+            
+            // Update header with coach's name
+            document.querySelector('.dashboard-header h1').textContent = 
+                `Welcome Back, ${coachName} (${coachTitle})`;
+            
+            // Update specialization to show the selected expertise
+            document.querySelector('.specialization').textContent = 
+                `Expertise: ${coachExpertise}`;
+
+            // Set last login time
+            const now = new Date();
+            document.getElementById('last-login-time').textContent = now.toLocaleString();
+
+            // Handle logout
+            document.getElementById('logout-btn').addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('isLoggedIn');
+                localStorage.removeItem('userType');
+                localStorage.removeItem('username');
+                localStorage.removeItem('coachData');
+                window.location.href = 'login.html';
+            });
+
+            // Function to calculate accurate stats from all schedule data
+            function calculateStats() {
+                const keys = Object.keys(localStorage);
+                // Only look at schedule data for the current coach
+                const scheduleKeys = keys.filter(key => key.startsWith(`scheduleData_${username}_`));
+                
+                let totalActiveStudents = new Set();
+                let totalUpcomingLessons = 0;
+                let totalPendingRequests = 0;
+                
+                scheduleKeys.forEach(key => {
+                    const scheduleData = JSON.parse(localStorage.getItem(key));
+                    if (scheduleData && scheduleData.weeklySchedule) {
+                        Object.values(scheduleData.weeklySchedule).forEach(daySlots => {
+                            if (Array.isArray(daySlots)) {
+                                daySlots.forEach(slot => {
+                                    if (slot.status === 'booked' && slot.student) {
+                                        totalActiveStudents.add(slot.student);
+                                        totalUpcomingLessons++;
+                                    } else if (slot.status === 'pending' && slot.student) {
+                                        totalPendingRequests++;
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+                
+                // Update stats display
+                document.getElementById('active-students-count').textContent = totalActiveStudents.size;
+                document.getElementById('upcoming-lessons-count').textContent = totalUpcomingLessons;
+                document.getElementById('pending-requests-count').textContent = totalPendingRequests;
+            }
+
+            // Function to get today's lessons from current week schedule
+            function getTodaysLessons() {
+                const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                const today = new Date();
+                const dayName = days[today.getDay()];
+                
+                // Get current week's schedule
+                const currentWeekKey = `scheduleData_${username}_${getWeekKey(today)}`;
+                const currentWeekSchedule = localStorage.getItem(currentWeekKey);
+                
+                if (currentWeekSchedule) {
+                    const scheduleData = JSON.parse(currentWeekSchedule);
+                    if (scheduleData.weeklySchedule && scheduleData.weeklySchedule[dayName]) {
+                        return scheduleData.weeklySchedule[dayName].filter(slot => slot.status === 'booked');
+                    }
+                }
+                return [];
+            }
+
+            // Helper function to get week key (same as in coach-schedule.html)
+            function getWeekKey(date) {
+                const monday = getMondayOfWeek(date);
+                return monday.toISOString().split('T')[0];
+            }
+
+            function getMondayOfWeek(date) {
+                const day = date.getDay();
+                const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+                return new Date(date.setDate(diff));
+            }
+
+            // Update today's schedule display
+            function updateTodaySchedule() {
+                const lessonList = document.getElementById('today-lessons');
+                const todaysLessons = getTodaysLessons();
+
+                if (todaysLessons.length === 0) {
+                    lessonList.innerHTML = '<p>No lessons scheduled for today</p>';
+                    return;
+                }
+
+                lessonList.innerHTML = todaysLessons.map(lesson => {
+                    return `
+                        <div class="lesson-item">
+                            <div class="lesson-time">${lesson.time}</div>
+                            <div class="lesson-details">
+                                <h3>Chess Lesson</h3>
+                                <p>Student: ${lesson.student}</p>
+                                <p>Status: Confirmed</p>
+                            </div>
+                            <button class="cta-button primary">Start Lesson</button>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Calculate and display stats
+            calculateStats();
+            updateTodaySchedule();
+
+            // Handle Message Students button
+            document.getElementById('message-students').addEventListener('click', function(e) {
+                e.preventDefault();
+                const storedSchedule = localStorage.getItem('scheduleData');
+                let studentEmails = [];
+                
+                if (storedSchedule) {
+                    const scheduleData = JSON.parse(storedSchedule);
+                    if (scheduleData.students) {
+                        // Collect student emails if available
+                        Object.entries(scheduleData.students).forEach(([name, data]) => {
+                            if (data.email) {
+                                studentEmails.push(data.email);
+                            }
+                        });
+                    }
+                }
+                
+                // Open Gmail with student emails if available, otherwise open with empty recipient
+                const emailLink = studentEmails.length > 0 
+                    ? `mailto:${studentEmails.join(',')}?subject=Chess Lesson Update`
+                    : 'mailto:?subject=Chess Lesson Update';
+                window.location.href = emailLink;
+            });
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lesson Requests - Chess Coaching Platform</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .requests-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            padding: 2rem;
+        }
+        .request-card {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: #f9f9f9;
+        }
+        .request-card strong {
+            color: var(--primary);
+        }
+        .request-actions {
+            margin-top: 0.75rem;
+            display: flex;
+            gap: 1rem;
+        }
+        .cta-button.primary {
+            background: var(--primary);
+            color: #fff;
+        }
+        .cta-button.secondary {
+            background: #eee;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar__container">
+            <a href="index.html" id="navbar__logo">Chess Coaching Platform</a>
+            <div class="navbar__toggle" id="mobile-menu">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+            <ul class="navbar__menu">
+                <li class="navbar__item">
+                    <a href="coach-dashboard.html" class="navbar__links">Dashboard</a>
+                </li>
+                <li class="navbar__item">
+                    <a href="coach-schedule.html" class="navbar__links">Schedule</a>
+                </li>
+                <li class="navbar__item">
+                    <a href="lesson-requests.html" class="navbar__links active">Lesson Requests</a>
+                </li>
+                <li class="navbar__item">
+                    <a href="#" id="logout-btn" class="navbar__links">Logout</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <main>
+        <div style="background:#ffe4e4;padding:0.5rem 1rem;margin:1rem auto;max-width:800px;border-radius:6px;" id="error-log"></div>
+        <div style="max-width:800px;margin:1rem auto;text-align:center;">
+            <button onclick="window.acceptRequest && window.acceptRequest('2024-06-10','Monday','9:00 AM')" style="background:#ffd700;color:#333;padding:0.5rem 1rem;border-radius:4px;border:none;cursor:pointer;">Test Accept Button</button>
+        </div>
+        <div class="requests-container">
+            <h1>Lesson Requests</h1>
+            <div id="requests-list"></div>
+        </div>
+    </main>
+    <footer class="footer">
+        <div class="footer__container">
+            <p>&copy; 2024 Chess Coaching Platform. All rights reserved.</p>
+        </div>
+    </footer>
+    <script>
+        function logError(msg) {
+            document.getElementById('error-log').textContent = msg;
+        }
+        window.onerror = function(msg, url, line, col, error) {
+            logError(msg + ' at ' + url + ':' + line);
+        };
+
+        // Accept and Reject handlers must be defined globally
+        window.acceptRequest = function(weekKey, day, time) {
+            try {
+                const username = localStorage.getItem('username');
+                const weekDate = new Date(weekKey);
+                const schedule = (function loadSchedule(username, weekDate) {
+                    const key = `scheduleData_${username}_${weekKey}`;
+                    let storedSchedule = localStorage.getItem(key);
+                    let schedule;
+                    try {
+                        if (storedSchedule) {
+                            schedule = JSON.parse(storedSchedule);
+                            if (!schedule.weeklySchedule) throw new Error('Corrupted schedule');
+                        } else {
+                            throw new Error('No schedule');
+                        }
+                    } catch (e) {
+                        schedule = {
+                            students: {},
+                            weeklySchedule: {
+                                Monday: [
+                                    { time: '9:00 AM', status: 'available' },
+                                    { time: '10:30 AM', status: 'available' },
+                                    { time: '2:00 PM', status: 'available' },
+                                    { time: '3:30 PM', status: 'available' }
+                                ],
+                                Tuesday: [
+                                    { time: '9:00 AM', status: 'available' },
+                                    { time: '10:30 AM', status: 'available' },
+                                    { time: '2:00 PM', status: 'available' },
+                                    { time: '3:30 PM', status: 'available' }
+                                ],
+                                Wednesday: [
+                                    { time: '9:00 AM', status: 'available' },
+                                    { time: '10:30 AM', status: 'available' },
+                                    { time: '2:00 PM', status: 'available' },
+                                    { time: '3:30 PM', status: 'available' }
+                                ],
+                                Thursday: [
+                                    { time: '9:00 AM', status: 'available' },
+                                    { time: '10:30 AM', status: 'available' },
+                                    { time: '2:00 PM', status: 'available' },
+                                    { time: '3:30 PM', status: 'available' }
+                                ],
+                                Friday: [
+                                    { time: '9:00 AM', status: 'available' },
+                                    { time: '10:30 AM', status: 'available' },
+                                    { time: '2:00 PM', status: 'available' },
+                                    { time: '3:30 PM', status: 'available' }
+                                ]
+                            }
+                        };
+                    }
+                    return schedule;
+                })(username, weekDate);
+                const slot = schedule.weeklySchedule[day].find(s => s.time === time);
+                if (slot && slot.status === 'pending') {
+                    slot.status = 'booked';
+                    // Store coach name in the slot for reference
+                    const coachData = JSON.parse(localStorage.getItem('coachData') || '{}');
+                    const userData = JSON.parse(localStorage.getItem('userData_' + username) || '{}');
+                    const coachName = coachData.name || userData.name || username;
+                    slot.coach = coachName; // Store coach name in the slot
+                    // Do NOT delete slot.student here
+                    localStorage.setItem(`scheduleData_${username}_${weekKey}`, JSON.stringify(schedule));
+
+                    // Notify student and update their schedule
+                    const studentUsername = slot.student || 'teststudent';
+                    // Update student's schedule
+                    const studentScheduleKey = `scheduleData_${studentUsername}_${weekKey}`;
+                    let studentSchedule = localStorage.getItem(studentScheduleKey);
+                    if (studentSchedule) {
+                        studentSchedule = JSON.parse(studentSchedule);
+                    } else {
+                        studentSchedule = {
+                            students: {},
+                            weeklySchedule: schedule.weeklySchedule // fallback
+                        };
+                    }
+                    const studentSlot = studentSchedule.weeklySchedule[day].find(s => s.time === time);
+                    if (studentSlot) {
+                        studentSlot.status = 'booked';
+                        studentSlot.student = studentUsername;
+                        studentSlot.coach = coachName; // Store coach name in student's schedule too
+                    }
+                    localStorage.setItem(studentScheduleKey, JSON.stringify(studentSchedule));
+                    // Add notification
+                    const notifKey = 'studentNotifications_' + studentUsername;
+                    let notifications = JSON.parse(localStorage.getItem(notifKey) || '[]');
+                    const notifMsg = `Your request was accepted by ${coachName} at ${day}, ${time}.`;
+                    notifications.push({
+                        type: 'accepted',
+                        message: notifMsg,
+                        timestamp: Date.now()
+                    });
+                    localStorage.setItem(notifKey, JSON.stringify(notifications));
+                    console.log('Notification written for student', notifKey, notifMsg);
+
+                    if (typeof renderLessonRequests === 'function') renderLessonRequests();
+                    alert(`Lesson confirmed at ${day}, ${time}.`);
+                }
+            } catch (err) {
+                logError('acceptRequest error: ' + err);
+            }
+        };
+        window.rejectRequest = function(weekKey, day, time) {
+            try {
+                const username = localStorage.getItem('username');
+                const weekDate = new Date(weekKey);
+                const schedule = (function loadSchedule(username, weekDate) {
+                    const key = `scheduleData_${username}_${weekKey}`;
+                    let storedSchedule = localStorage.getItem(key);
+                    let schedule;
+                    try {
+                        if (storedSchedule) {
+                            schedule = JSON.parse(storedSchedule);
+                            if (!schedule.weeklySchedule) throw new Error('Corrupted schedule');
+                        } else {
+                            throw new Error('No schedule');
+                        }
+                    } catch (e) {
+                        schedule = {
+                            students: {},
+                            weeklySchedule: {
+                                Monday: [
+                                    { time: '9:00 AM', status: 'available' },
+                                    { time: '10:30 AM', status: 'available' },
+                                    { time: '2:00 PM', status: 'available' },
+                                    { time: '3:30 PM', status: 'available' }
+                                ],
+                                Tuesday: [
+                                    { time: '9:00 AM', status: 'available' },
+                                    { time: '10:30 AM', status: 'available' },
+                                    { time: '2:00 PM', status: 'available' },
+                                    { time: '3:30 PM', status: 'available' }
+                                ],
+                                Wednesday: [
+                                    { time: '9:00 AM', status: 'available' },
+                                    { time: '10:30 AM', status: 'available' },
+                                    { time: '2:00 PM', status: 'available' },
+                                    { time: '3:30 PM', status: 'available' }
+                                ],
+                                Thursday: [
+                                    { time: '9:00 AM', status: 'available' },
+                                    { time: '10:30 AM', status: 'available' },
+                                    { time: '2:00 PM', status: 'available' },
+                                    { time: '3:30 PM', status: 'available' }
+                                ],
+                                Friday: [
+                                    { time: '9:00 AM', status: 'available' },
+                                    { time: '10:30 AM', status: 'available' },
+                                    { time: '2:00 PM', status: 'available' },
+                                    { time: '3:30 PM', status: 'available' }
+                                ]
+                            }
+                        };
+                    }
+                    return schedule;
+                })(username, weekDate);
+                const slot = schedule.weeklySchedule[day].find(s => s.time === time);
+                if (slot && slot.status === 'pending') {
+                    const studentUsername = slot.student || 'teststudent';
+                    slot.status = 'available';
+                    // Remove the student from the slot so it no longer appears as a request
+                    delete slot.student;
+                    localStorage.setItem(`scheduleData_${username}_${weekKey}`, JSON.stringify(schedule));
+                    // Update student's schedule
+                    const studentScheduleKey = `scheduleData_${studentUsername}_${weekKey}`;
+                    let studentSchedule = localStorage.getItem(studentScheduleKey);
+                    if (studentSchedule) {
+                        studentSchedule = JSON.parse(studentSchedule);
+                    } else {
+                        studentSchedule = {
+                            students: {},
+                            weeklySchedule: schedule.weeklySchedule // fallback
+                        };
+                    }
+                    const studentSlot = studentSchedule.weeklySchedule[day].find(s => s.time === time);
+                    if (studentSlot) {
+                        studentSlot.status = 'available';
+                        delete studentSlot.student;
+                    }
+                    localStorage.setItem(studentScheduleKey, JSON.stringify(studentSchedule));
+                    // Add notification
+                    const notifKey = 'studentNotifications_' + studentUsername;
+                    let notifications = JSON.parse(localStorage.getItem(notifKey) || '[]');
+                    const notifMsg = `Your request was rejected for ${day}, ${time}.`;
+                    notifications.push({
+                        type: 'rejected',
+                        message: notifMsg,
+                        timestamp: Date.now()
+                    });
+                    localStorage.setItem(notifKey, JSON.stringify(notifications));
+                    console.log('Notification written for student', notifKey, notifMsg);
+
+                    if (typeof renderLessonRequests === 'function') renderLessonRequests();
+                    alert(`Lesson request rejected for ${day}, ${time}.`);
+                }
+            } catch (err) {
+                logError('rejectRequest error: ' + err);
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if user is logged in as coach
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            const userType = localStorage.getItem('userType');
+            const username = localStorage.getItem('username');
+            if (!isLoggedIn || userType !== 'coach') {
+                window.location.href = 'login.html';
+                return;
+            }
+            const requestsList = document.getElementById('requests-list');
+            const maxFutureWeeks = 2;
+            function getMondayOfWeek(date) {
+                const d = new Date(date);
+                const day = d.getDay();
+                const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+                d.setDate(diff);
+                d.setHours(0,0,0,0);
+                return d;
+            }
+            function getWeekKey(date) {
+                const monday = getMondayOfWeek(date);
+                return monday.toISOString().slice(0,10);
+            }
+            function getScheduleKeyForWeek(username, weekDate) {
+                return `scheduleData_${username}_${getWeekKey(weekDate)}`;
+            }
+            function loadSchedule(username, weekDate) {
+                const key = getScheduleKeyForWeek(username, weekDate);
+                let storedSchedule = localStorage.getItem(key);
+                let schedule;
+                try {
+                    if (storedSchedule) {
+                        schedule = JSON.parse(storedSchedule);
+                        if (!schedule.weeklySchedule) throw new Error('Corrupted schedule');
+                    } else {
+                        throw new Error('No schedule');
+                    }
+                } catch (e) {
+                    schedule = {
+                        students: {},
+                        weeklySchedule: {
+                            Monday: [
+                                { time: '9:00 AM', status: 'available' },
+                                { time: '10:30 AM', status: 'available' },
+                                { time: '2:00 PM', status: 'available' },
+                                { time: '3:30 PM', status: 'available' }
+                            ],
+                            Tuesday: [
+                                { time: '9:00 AM', status: 'available' },
+                                { time: '10:30 AM', status: 'available' },
+                                { time: '2:00 PM', status: 'available' },
+                                { time: '3:30 PM', status: 'available' }
+                            ],
+                            Wednesday: [
+                                { time: '9:00 AM', status: 'available' },
+                                { time: '10:30 AM', status: 'available' },
+                                { time: '2:00 PM', status: 'available' },
+                                { time: '3:30 PM', status: 'available' }
+                            ],
+                            Thursday: [
+                                { time: '9:00 AM', status: 'available' },
+                                { time: '10:30 AM', status: 'available' },
+                                { time: '2:00 PM', status: 'available' },
+                                { time: '3:30 PM', status: 'available' }
+                            ],
+                            Friday: [
+                                { time: '9:00 AM', status: 'available' },
+                                { time: '10:30 AM', status: 'available' },
+                                { time: '2:00 PM', status: 'available' },
+                                { time: '3:30 PM', status: 'available' }
+                            ]
+                        }
+                    };
+                }
+                return schedule;
+            }
+            function saveSchedule(schedule, weekDate) {
+                const key = getScheduleKeyForWeek(username, weekDate);
+                localStorage.setItem(key, JSON.stringify(schedule));
+            }
+            function getNextNWeeks(n) {
+                const weeks = [];
+                const today = new Date();
+                for (let i = 0; i <= n; i++) {
+                    const weekDate = new Date(today);
+                    weekDate.setDate(today.getDate() + i * 7);
+                    weeks.push(getMondayOfWeek(weekDate));
+                }
+                return weeks;
+            }
+            function renderLessonRequests() {
+                let html = '';
+                const weeks = getNextNWeeks(maxFutureWeeks);
+                let found = false;
+                weeks.forEach(weekDate => {
+                    const schedule = loadSchedule(username, weekDate);
+                    const weekKey = getWeekKey(weekDate);
+                    Object.entries(schedule.weeklySchedule).forEach(([day, slots]) => {
+                        slots.forEach(slot => {
+                            if (slot.status === 'pending' && slot.student) {
+                                found = true;
+                                html += `<div class="request-card">
+                                    <strong>${slot.student}</strong> requests <strong>${day} at ${slot.time}</strong><br>
+                                    <div class="request-actions">
+                                        <button class="cta-button primary" onclick="window.acceptRequest('${weekKey}','${day}','${slot.time}')">Accept</button>
+                                        <button class="cta-button secondary" onclick="window.rejectRequest('${weekKey}','${day}','${slot.time}')">Reject</button>
+                                    </div>
+                                </div>`;
+                            }
+                        });
+                    });
+                });
+                if (!found) {
+                    html = '<p>No lesson requests at this time.</p>';
+                }
+                requestsList.innerHTML = html;
+            }
+            renderLessonRequests();
+            // Logout handler
+            document.getElementById('logout-btn').addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('isLoggedIn');
+                localStorage.removeItem('userType');
+                localStorage.removeItem('username');
+                localStorage.removeItem('coachData');
+                localStorage.removeItem('studentData');
+                window.location.href = 'login.html';
+            });
+        });
+    </script>
+</body>
+</html> 

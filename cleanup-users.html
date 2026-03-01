@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cleanup Users - Chess Coaching Platform</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .cleanup-section {
+            padding: 2rem 0;
+        }
+        
+        .user-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+        
+        .user-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #ff6b6b;
+        }
+        
+        .user-card.assigned {
+            border-left-color: #51cf66;
+        }
+        
+        .user-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .user-type {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .user-type.student {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .user-type.unassigned {
+            background-color: #ffebee;
+            color: #d32f2f;
+        }
+        
+        .user-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .user-details p {
+            margin: 0.25rem 0;
+            font-size: 0.9rem;
+        }
+        
+        .remove-btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+        
+        .remove-btn:hover {
+            background: #ff5252;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: #fff;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .stat-label {
+            color: #666;
+            margin-top: 0.5rem;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: #ff6b6b;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar__container">
+            <a href="index.html" id="navbar__logo">Chess Coaching Platform</a>
+            <div class="navbar__toggle" id="mobile-menu">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+            <ul class="navbar__menu">
+                <li class="navbar__item">
+                    <a href="index.html" class="navbar__links">Home</a>
+                </li>
+                <li class="navbar__item">
+                    <a href="users.html" class="navbar__links">Users</a>
+                </li>
+                <li class="navbar__item">
+                    <a href="cleanup-users.html" class="navbar__links active">Cleanup</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <section class="cleanup-section">
+            <div class="chess-pattern"></div>
+            <div class="dashboard__container">
+                <div class="dashboard-header">
+                    <h1>Cleanup Unassigned Students</h1>
+                    <p>Remove students who are not assigned to any coach</p>
+                </div>
+
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-number" id="total-students">0</div>
+                        <div class="stat-label">Total Students</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="unassigned-students">0</div>
+                        <div class="stat-label">Unassigned Students</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="assigned-students">0</div>
+                        <div class="stat-label">Assigned Students</div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="refresh-btn">Refresh List</button>
+                    <button class="btn btn-danger" id="remove-all-btn">Remove All Unassigned</button>
+                    <a href="users.html" class="btn btn-secondary">Back to Users</a>
+                </div>
+
+                <div class="user-list" id="user-list">
+                    <!-- Users will be populated here -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="footer__container">
+            <p>&copy; 2024 Chess Coaching Platform. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            function loadUsers() {
+                const userList = document.getElementById('user-list');
+                const totalStudentsEl = document.getElementById('total-students');
+                const unassignedStudentsEl = document.getElementById('unassigned-students');
+                const assignedStudentsEl = document.getElementById('assigned-students');
+                
+                let totalStudents = 0;
+                let unassignedStudents = 0;
+                let assignedStudents = 0;
+                let usersHTML = '';
+
+                // Get all keys from localStorage
+                const keys = Object.keys(localStorage);
+                const userKeys = keys.filter(key => key.startsWith('userData_'));
+                
+                userKeys.forEach(key => {
+                    const userData = JSON.parse(localStorage.getItem(key));
+                    if (userData && userData.userType === 'student') {
+                        totalStudents++;
+                        
+                        // Check if student is assigned to a coach
+                        const isAssigned = userData.coach && 
+                                          userData.coach !== 'Available Coach' && 
+                                          userData.coach !== 'Unassigned' &&
+                                          userData.coach.trim() !== '';
+                        
+                        if (isAssigned) {
+                            assignedStudents++;
+                            usersHTML += `
+                                <div class="user-card assigned">
+                                    <div class="user-header">
+                                        <div class="user-type student">Assigned Student</div>
+                                    </div>
+                                    <div class="user-name">${userData.name || userData.username}</div>
+                                    <div class="user-details">
+                                        <p><strong>Email:</strong> ${userData.email || 'N/A'}</p>
+                                        <p><strong>Rating:</strong> ${userData.rating || 'Not specified'}</p>
+                                        <p><strong>Coach:</strong> ${userData.coach}</p>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            unassignedStudents++;
+                            usersHTML += `
+                                <div class="user-card">
+                                    <div class="user-header">
+                                        <div class="user-type unassigned">Unassigned Student</div>
+                                    </div>
+                                    <div class="user-name">${userData.name || userData.username}</div>
+                                    <div class="user-details">
+                                        <p><strong>Email:</strong> ${userData.email || 'N/A'}</p>
+                                        <p><strong>Rating:</strong> ${userData.rating || 'Not specified'}</p>
+                                        <p><strong>Coach:</strong> ${userData.coach || 'No coach assigned'}</p>
+                                    </div>
+                                    <button class="remove-btn" onclick="removeUser('${userData.username}')">
+                                        Remove Student
+                                    </button>
+                                </div>
+                            `;
+                        }
+                    }
+                });
+
+                // Add demo student if exists
+                const demoStudent = {
+                    name: 'John',
+                    username: 'johnnyboy',
+                    userType: 'student',
+                    rating: 1200,
+                    coach: 'Alex Kolay',
+                    email: 'john@example.com'
+                };
+
+                // Check if demo student is in localStorage
+                const demoStudentData = localStorage.getItem('userData_johnnyboy');
+                if (!demoStudentData) {
+                    totalStudents++;
+                    assignedStudents++;
+                    usersHTML += `
+                        <div class="user-card assigned">
+                            <div class="user-header">
+                                <div class="user-type student">Demo Student (Assigned)</div>
+                            </div>
+                            <div class="user-name">${demoStudent.name}</div>
+                            <div class="user-details">
+                                <p><strong>Email:</strong> ${demoStudent.email}</p>
+                                <p><strong>Rating:</strong> ${demoStudent.rating}</p>
+                                <p><strong>Coach:</strong> ${demoStudent.coach}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                userList.innerHTML = usersHTML || '<p style="grid-column: 1 / -1; text-align: center; color: #666;">No students found.</p>';
+                
+                totalStudentsEl.textContent = totalStudents;
+                unassignedStudentsEl.textContent = unassignedStudents;
+                assignedStudentsEl.textContent = assignedStudents;
+            }
+
+            // Global function to remove a user
+            window.removeUser = function(username) {
+                if (confirm(`Are you sure you want to remove the student "${username}"?`)) {
+                    localStorage.removeItem('userData_' + username);
+                    loadUsers();
+                    alert(`Student "${username}" has been removed.`);
+                }
+            };
+
+            // Remove all unassigned students
+            document.getElementById('remove-all-btn').addEventListener('click', function() {
+                const unassignedCount = parseInt(document.getElementById('unassigned-students').textContent);
+                if (unassignedCount === 0) {
+                    alert('No unassigned students to remove.');
+                    return;
+                }
+                
+                if (confirm(`Are you sure you want to remove all ${unassignedCount} unassigned students? This action cannot be undone.`)) {
+                    const keys = Object.keys(localStorage);
+                    const userKeys = keys.filter(key => key.startsWith('userData_'));
+                    let removedCount = 0;
+                    
+                    userKeys.forEach(key => {
+                        const userData = JSON.parse(localStorage.getItem(key));
+                        if (userData && userData.userType === 'student') {
+                            const isAssigned = userData.coach && 
+                                              userData.coach !== 'Available Coach' && 
+                                              userData.coach !== 'Unassigned' &&
+                                              userData.coach.trim() !== '';
+                            
+                            if (!isAssigned) {
+                                localStorage.removeItem(key);
+                                removedCount++;
+                            }
+                        }
+                    });
+                    
+                    loadUsers();
+                    alert(`${removedCount} unassigned students have been removed.`);
+                }
+            });
+
+            // Refresh button
+            document.getElementById('refresh-btn').addEventListener('click', function() {
+                loadUsers();
+            });
+
+            // Load users on page load
+            loadUsers();
+        });
+    </script>
+</body>
+</html> 

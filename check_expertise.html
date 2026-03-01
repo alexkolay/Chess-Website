@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head><title>Check Expertise</title></head>
+<body>
+<h1>Coach Expertise Checker</h1>
+<div id="results"></div>
+<script>
+const results = document.getElementById('results');
+const keys = Object.keys(localStorage);
+const userKeys = keys.filter(key => key.startsWith('userData_'));
+
+let html = '<h2>Coaches Found:</h2><ul>';
+userKeys.forEach(key => {
+    try {
+        const userData = JSON.parse(localStorage.getItem(key));
+        if (userData && userData.userType === 'coach') {
+            html += `<li><strong>${userData.name || userData.username}</strong><br>`;
+            html += `Expertise: ${userData.expertise || 'NOT SET'}<br>`;
+            html += `Specialization: ${userData.specialization || 'NOT SET'}<br>`;
+            html += `Username: ${userData.username || 'NOT SET'}</li>`;
+        }
+    } catch(e) {}
+});
+html += '</ul>';
+results.innerHTML = html;
+</script>
+</body>
+</html>

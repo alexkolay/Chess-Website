@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Our Coaches - Chess Coaching Platform</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .coaches-section {
+            padding: 4rem 0;
+            min-height: 100vh;
+        }
+
+        .coaches__container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .coaches-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .coaches-header h1 {
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .coaches-header p {
+            font-size: 1.1rem;
+            color: var(--gray);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .coaches-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .coach-card {
+            background: var(--light);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid #e0e0e0;
+        }
+
+        .coach-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .coach-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .coach-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            font-weight: bold;
+            margin-right: 1rem;
+        }
+
+        .coach-info h3 {
+            color: var(--primary);
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .coach-title {
+            color: var(--secondary);
+            font-weight: 500;
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .coach-rating {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+
+        .coach-rating .stars {
+            color: var(--accent);
+        }
+
+        .coach-expertise {
+            margin-bottom: 1.5rem;
+        }
+
+        .expertise-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .expertise-tag {
+            background: var(--primary);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+
+
+        .coach-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 0.75rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--gray);
+            margin-top: 0.25rem;
+        }
+
+        .coach-links {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .coach-link {
+            flex: 1;
+            padding: 0.75rem;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .coach-link.primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .coach-link.primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .coach-link.secondary {
+            background: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+        }
+
+        .coach-link.secondary:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .coach-link.website {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .coach-link.website:hover {
+            background: #e55a35;
+        }
+
+        .filters {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 0.5rem 1rem;
+            border: 2px solid var(--primary);
+            background: transparent;
+            color: var(--primary);
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .filter-btn.active,
+        .filter-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .search-box {
+            max-width: 600px;
+            margin: 0 auto 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        #refresh-coaches {
+            padding: 0.75rem 1.5rem;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        @media screen and (max-width: 768px) {
+            .coaches-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .coach-card {
+                padding: 1.5rem;
+            }
+
+            .coach-links {
+                flex-direction: column;
+            }
+
+            .filters {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar__container">
+            <a href="index.html" id="navbar__logo">Chess Coaching Platform</a>
+            <div class="navbar__toggle" id="mobile-menu">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+            <ul class="navbar__menu">
+                <li class="navbar__item">
+                    <a href="index.html" class="navbar__links">Home</a>
+                </li>
+                <li class="navbar__item">
+                    <a href="coaches.html" class="navbar__links active">Coaches</a>
+                </li>
+
+                <li class="navbar__item">
+                    <a href="register.html" class="navbar__links">Register</a>
+                </li>
+                <li class="navbar__btn">
+                    <a href="login.html" class="button">Login</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <section class="coaches-section">
+            <div class="chess-pattern"></div>
+            <div class="coaches__container">
+                <div class="coaches-header">
+                    <h1>Meet Our Expert Coaches</h1>
+                    <p>Discover our team of qualified chess coaches, each with unique expertise and teaching styles to help you improve your game.</p>
+                    <div class="coaches-stats" id="coaches-stats" style="margin-top: 2rem; display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap;">
+                        <div class="stat-card" style="background: white; padding: 1rem 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center;">
+                            <div class="stat-number" id="total-coaches-count" style="font-size: 2rem; font-weight: bold; color: var(--primary);">0</div>
+                            <div class="stat-label" style="color: var(--gray); font-size: 0.9rem;">Total Coaches</div>
+                        </div>
+                        <div class="stat-card" style="background: white; padding: 1rem 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center;">
+                            <div class="stat-number" id="total-students-count" style="font-size: 2rem; font-weight: bold; color: var(--primary);">0</div>
+                            <div class="stat-label" style="color: var(--gray); font-size: 0.9rem;">Total Students</div>
+                        </div>
+                        <div class="stat-card" style="background: white; padding: 1rem 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center;">
+                            <div class="stat-number" id="avg-rating" style="font-size: 2rem; font-weight: bold; color: var(--primary);">0</div>
+                            <div class="stat-label" style="color: var(--gray); font-size: 0.9rem;">Avg Coach Rating</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="search-box">
+                    <input type="text" id="coach-search" placeholder="Search coaches by name, expertise, or title...">
+                    <button id="refresh-coaches" class="cta-button secondary" style="margin-left: 1rem;">Refresh Coaches</button>
+                </div>
+
+                <div class="filters">
+                    <button class="filter-btn active" data-filter="all">All Coaches</button>
+                    <button class="filter-btn" data-filter="opening">Opening Preparation</button>
+                    <button class="filter-btn" data-filter="middlegame">Middlegame Strategy</button>
+                    <button class="filter-btn" data-filter="endgame">Endgame Technique</button>
+                    <button class="filter-btn" data-filter="tactics">Tactics & Calculation</button>
+                    <button class="filter-btn" data-filter="tournament">Tournament Prep</button>
+                </div>
+
+                <div class="coaches-grid" id="coaches-grid">
+                    <!-- Coaches will be populated by JavaScript -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="footer__container">
+            <p>&copy; 2024 Chess Coaching Platform. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Function to load coaches from localStorage
+            function loadCoachesFromStorage() {
+                const coaches = [];
+                const keys = Object.keys(localStorage);
+                const userKeys = keys.filter(key => key.startsWith('userData_'));
+                
+                userKeys.forEach(key => {
+                    try {
+                        const userData = JSON.parse(localStorage.getItem(key));
+                        if (userData && userData.userType === 'coach') {
+                            // Debug: Log what we're finding for each coach
+                            console.log(`Coach: ${userData.name || userData.username} (${userData.username})`, {
+                                hasExpertise: !!userData.expertise,
+                                expertise: userData.expertise,
+                                hasSpecialization: !!userData.specialization,
+                                specialization: userData.specialization,
+                                rawUserData: userData
+                            });
+                        // Count students for this coach
+                        let studentCount = 0;
+                        const studentKeys = keys.filter(k => k.startsWith('userData_'));
+                        const uniqueStudents = new Set(); // Track unique students to avoid double counting
+                        
+                        studentKeys.forEach(studentKey => {
+                            try {
+                                const studentData = JSON.parse(localStorage.getItem(studentKey));
+                                if (studentData && studentData.userType === 'student') {
+                                    // Check if student is assigned to this coach (single coach or in coaches array)
+                                    const studentUsername = studentKey.replace('userData_', '');
+                                    const isAssigned = 
+                                        studentData.coach === userData.name || 
+                                        studentData.coach === userData.username ||
+                                        (Array.isArray(studentData.coaches) && (
+                                            studentData.coaches.includes(userData.name) || 
+                                            studentData.coaches.includes(userData.username)
+                                        )) ||
+                                        (Array.isArray(studentData.coachUsernames) && 
+                                         studentData.coachUsernames.includes(userData.username));
+                                    
+                                    if (isAssigned && !uniqueStudents.has(studentUsername)) {
+                                        studentCount++;
+                                        uniqueStudents.add(studentUsername);
+                                    }
+                                }
+                            } catch (e) {
+                                // Ignore corrupted student data
+                                console.warn('Corrupted student data found:', studentKey);
+                            }
+                        });
+                        
+                        // Also count students from schedule data who have booked lessons with this coach
+                        // Schedule keys are in format: scheduleData_{coachUsername}_{weekKey}
+                        const scheduleKeys = keys.filter(k => {
+                            if (!k.startsWith('scheduleData_')) return false;
+                            const parts = k.split('_');
+                            // Check if the coach username matches (second part of the key)
+                            return parts.length >= 3 && parts[1] === userData.username;
+                        });
+                        
+                        scheduleKeys.forEach(scheduleKey => {
+                            try {
+                                const scheduleData = JSON.parse(localStorage.getItem(scheduleKey));
+                                if (scheduleData && scheduleData.weeklySchedule) {
+                                    Object.values(scheduleData.weeklySchedule).forEach(daySlots => {
+                                        if (Array.isArray(daySlots)) {
+                                            daySlots.forEach(slot => {
+                                                if (slot.status === 'booked' && slot.student) {
+                                                    const studentIdentifier = slot.student; // Could be name or username
+                                                    // Try to find student by name or username
+                                                    let studentUsername = null;
+                                                    
+                                                    // First try as username
+                                                    if (localStorage.getItem('userData_' + studentIdentifier)) {
+                                                        studentUsername = studentIdentifier;
+                                                    } else {
+                                                        // Try to find by name
+                                                        const allStudentKeys = keys.filter(k => k.startsWith('userData_'));
+                                                        for (const studentKey of allStudentKeys) {
+                                                            try {
+                                                                const studentData = JSON.parse(localStorage.getItem(studentKey));
+                                                                if (studentData && studentData.userType === 'student' && 
+                                                                    (studentData.name === studentIdentifier || studentData.username === studentIdentifier)) {
+                                                                    studentUsername = studentData.username || studentKey.replace('userData_', '');
+                                                                    break;
+                                                                }
+                                                            } catch (e) {
+                                                                // Continue searching
+                                                            }
+                                                        }
+                                                    }
+                                                    
+                                                    // Only count if not already counted and student exists
+                                                    if (studentUsername && !uniqueStudents.has(studentUsername)) {
+                                                        try {
+                                                            const studentData = JSON.parse(localStorage.getItem('userData_' + studentUsername));
+                                                            if (studentData && studentData.userType === 'student') {
+                                                                studentCount++;
+                                                                uniqueStudents.add(studentUsername);
+                                                            }
+                                                        } catch (e) {
+                                                            // Ignore if student data doesn't exist
+                                                        }
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                            } catch (e) {
+                                // Ignore corrupted schedule data
+                            }
+                        });
+                        
+                        // Parse expertise - SIMPLIFIED: check expertise field first (set during login), then specialization (set during registration)
+                        let expertise = [];
+                        
+                        // First check for expertise (set during login) - this is the priority
+                        // Simple check: if expertise exists and is not empty/null/undefined
+                        if (userData.expertise) {
+                            const expValue = userData.expertise;
+                            if (Array.isArray(expValue)) {
+                                expertise = expValue.filter(exp => exp && String(exp).trim());
+                            } else {
+                                const expStr = String(expValue).trim();
+                                // Only add if it's a valid non-empty string
+                                if (expStr && expStr.length > 0 && expStr !== 'null' && expStr !== 'undefined') {
+                                    expertise = [expStr];
+                                }
+                            }
+                        }
+                        
+                        // If no expertise found, check specialization (set during registration)
+                        if (expertise.length === 0 && userData.specialization) {
+                            const specValue = userData.specialization;
+                            if (Array.isArray(specValue)) {
+                                expertise = specValue.filter(exp => exp && String(exp).trim());
+                            } else {
+                                const specStr = String(specValue).trim();
+                                if (specStr && specStr.length > 0 && specStr !== 'null' && specStr !== 'undefined') {
+                                    // Specialization is a comma-separated string from registration
+                                    expertise = specStr.split(',').map(exp => exp.trim()).filter(exp => exp && exp.length > 0);
+                                }
+                            }
+                        }
+                        
+                        // Only use default if absolutely nothing is found
+                        if (expertise.length === 0) {
+                            expertise = ['General Training'];
+                        }
+                        
+                        // Debug: Log the final result for each coach
+                        console.log(`Expertise for ${userData.name || userData.username}:`, {
+                            rawExpertise: userData.expertise,
+                            rawSpecialization: userData.specialization,
+                            finalExpertise: expertise
+                        });
+                        
+                        // Use coach's actual rating if available, otherwise generate based on title
+                        let rating = userData.rating || 2000; // Use actual rating if set
+                        if (!userData.rating && userData.title) {
+                            // Fallback to title-based rating if no actual rating provided
+                            if (userData.title.toLowerCase().includes('fide master')) {
+                                rating = 2300;
+                            } else if (userData.title.toLowerCase().includes('international master')) {
+                                rating = 2400;
+                            } else if (userData.title.toLowerCase().includes('national master')) {
+                                rating = 2200;
+                            } else if (userData.title.toLowerCase().includes('woman')) {
+                                rating = 2100;
+                            }
+                        }
+                        
+                        coaches.push({
+                            id: coaches.length + 1,
+                            name: userData.name || userData.username,
+                            title: userData.title || 'Chess Coach',
+                            rating: rating,
+                            expertise: expertise.length > 0 ? expertise : ['General Training'],
+                            stats: {
+                                students: studentCount,
+                                rating: rating
+                            },
+                            website: `https://${userData.username.toLowerCase()}chess.com`,
+                            email: userData.email,
+                            availability: 'Available'
+                        });
+                    }
+                    } catch (e) {
+                        // Ignore corrupted user data
+                        console.warn('Corrupted user data found:', key);
+                    }
+                });
+                
+                return coaches;
+            }
+            
+            // Function to update stats
+            function updateStats(coaches) {
+                const totalCoaches = coaches.length;
+                let totalStudents = 0;
+                let totalRating = 0;
+                
+                coaches.forEach(coach => {
+                    totalStudents += coach.stats.students;
+                    totalRating += coach.rating;
+                });
+                
+                const avgRating = totalCoaches > 0 ? Math.round(totalRating / totalCoaches) : 0;
+                
+                document.getElementById('total-coaches-count').textContent = totalCoaches;
+                document.getElementById('total-students-count').textContent = totalStudents;
+                document.getElementById('avg-rating').textContent = avgRating;
+            }
+            
+            // Load coaches from localStorage
+            let coaches = loadCoachesFromStorage();
+            
+            // If no coaches found in localStorage, show a message
+            if (coaches.length === 0) {
+                const grid = document.getElementById('coaches-grid');
+                grid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
+                        <h3>No coaches registered yet</h3>
+                        <p>Be the first to register as a coach!</p>
+                        <a href="register.html" class="cta-button primary">Register as Coach</a>
+                    </div>
+                `;
+                updateStats([]);
+                return;
+            }
+
+            let filteredCoaches = [...coaches];
+
+            function renderCoaches(coachesToRender) {
+                const grid = document.getElementById('coaches-grid');
+                grid.innerHTML = '';
+
+                coachesToRender.forEach(coach => {
+                    const coachCard = document.createElement('div');
+                    coachCard.className = 'coach-card';
+                    
+                    const initials = coach.name.split(' ').map(n => n[0]).join('');
+                    
+                    coachCard.innerHTML = `
+                        <div class="coach-header">
+                            <div class="coach-avatar">${initials}</div>
+                            <div class="coach-info">
+                                <h3>${coach.name}</h3>
+                                <div class="coach-title">${coach.title}</div>
+                                <div class="coach-rating">
+                                    <span class="stars">★★★★★</span>
+                                    <span>${coach.rating} FIDE</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="coach-expertise">
+                            <strong>Expertise:</strong>
+                            <div class="expertise-tags">
+                                ${coach.expertise.map(exp => `<span class="expertise-tag">${exp}</span>`).join('')}
+                            </div>
+                        </div>
+                        
+
+                        
+                        <div class="coach-stats">
+                            <div class="stat-item">
+                                <div class="stat-number">${coach.stats.students}</div>
+                                <div class="stat-label">Students</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-number">${coach.stats.rating}</div>
+                                <div class="stat-label">Rating</div>
+                            </div>
+                        </div>
+                        
+                        <div class="coach-links">
+                            <a href="mailto:${coach.email}" class="coach-link primary">Contact</a>
+                            <a href="${coach.website}" target="_blank" class="coach-link website">Website</a>
+                        </div>
+                    `;
+                    
+                    grid.appendChild(coachCard);
+                });
+            }
+
+            // Search functionality
+            const searchInput = document.getElementById('coach-search');
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                filteredCoaches = coaches.filter(coach => 
+                    coach.name.toLowerCase().includes(searchTerm) ||
+                    coach.title.toLowerCase().includes(searchTerm) ||
+                    coach.expertise.some(exp => exp.toLowerCase().includes(searchTerm))
+                );
+                renderCoaches(filteredCoaches);
+            });
+
+            // Filter functionality
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active class from all buttons
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    // Add active class to clicked button
+                    this.classList.add('active');
+                    
+                    const filter = this.dataset.filter;
+                    
+                    if (filter === 'all') {
+                        filteredCoaches = [...coaches];
+                    } else {
+                        filteredCoaches = coaches.filter(coach => 
+                            coach.expertise.some(exp => 
+                                exp.toLowerCase().includes(filter.toLowerCase())
+                            )
+                        );
+                    }
+                    
+                    renderCoaches(filteredCoaches);
+                });
+            });
+
+            // Refresh coaches functionality
+            const refreshButton = document.getElementById('refresh-coaches');
+            refreshButton.addEventListener('click', function() {
+                coaches = loadCoachesFromStorage();
+                filteredCoaches = [...coaches];
+                renderCoaches(coaches);
+                updateStats(coaches);
+                
+                // Update filter buttons if needed
+                const activeFilter = document.querySelector('.filter-btn.active');
+                if (activeFilter && activeFilter.dataset.filter !== 'all') {
+                    const filter = activeFilter.dataset.filter;
+                    filteredCoaches = coaches.filter(coach => 
+                        coach.expertise.some(exp => 
+                            exp.toLowerCase().includes(filter.toLowerCase())
+                        )
+                    );
+                    renderCoaches(filteredCoaches);
+                }
+            });
+
+            // Mobile menu toggle
+            const mobileMenu = document.getElementById('mobile-menu');
+            const navbarMenu = document.querySelector('.navbar__menu');
+            
+            mobileMenu.addEventListener('click', function() {
+                mobileMenu.classList.toggle('is-active');
+                navbarMenu.classList.toggle('active');
+            });
+
+            // Initial render
+            renderCoaches(coaches);
+            updateStats(coaches);
+        });
+    </script>
+</body>
+</html> 

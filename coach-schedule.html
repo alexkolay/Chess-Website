@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coach Schedule - Chess Coaching Platform</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .schedule-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1rem;
+            margin-top: 2rem;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+
+        .day-column {
+            background: #fff;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            min-width: 200px;
+        }
+
+        .day-header {
+            text-align: center;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #eee;
+            margin-bottom: 1rem;
+        }
+
+        .day-header h3 {
+            margin: 0;
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+
+        .time-slot {
+            padding: 0.5rem;
+            margin: 0.5rem 0;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .time-slot.booked {
+            background-color: #e6f3ff;
+            border: 1px solid #b3d7ff;
+        }
+
+        .time-slot.available {
+            background-color: #e8f5e9;
+            border: 1px solid #c8e6c9;
+            cursor: pointer;
+        }
+
+        .time-slot.unavailable {
+            background-color: #ffebee;
+            border: 1px solid #ffcdd2;
+            color: #888;
+        }
+
+        .schedule-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .schedule-legend {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .schedule-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: normal;
+            cursor: pointer;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: relative;
+            background-color: #fff;
+            margin: 15% auto;
+            padding: 2rem;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .close-modal {
+            position: absolute;
+            right: 1rem;
+            top: 1rem;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        @media screen and (max-width: 1200px) {
+            .schedule-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media screen and (max-width: 768px) {
+            .schedule-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .schedule-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar__container">
+            <a href="index.html" id="navbar__logo">Chess Coaching Platform</a>
+            <div class="navbar__toggle" id="mobile-menu">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+            <ul class="navbar__menu">
+                <li class="navbar__item">
+                    <a href="coach-dashboard.html" class="navbar__links">Dashboard</a>
+                </li>
+                <li class="navbar__item">
+                    <a href="coach-schedule.html" class="navbar__links active">Schedule</a>
+                </li>
+                <li class="navbar__item">
+                    <a href="lesson-requests.html" class="navbar__links">Lesson Requests</a>
+                </li>
+                <li class="navbar__item">
+                    <a href="#" id="logout-btn" class="navbar__links">Logout</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <section class="dashboard-section">
+            <div class="chess-pattern"></div>
+            <div class="dashboard__container">
+                <div class="dashboard-header">
+                    <h1>Coaching Schedule</h1>
+                    <p id="coach-info"></p>
+                </div>
+
+                        <div class="schedule-controls">
+            <div class="date-navigation">
+                <button class="cta-button" id="prev-week">&lt; Previous Week</button>
+                <span id="current-week" style="font-weight: 500; margin: 0 1rem;"></span>
+                <button class="cta-button" id="next-week">Next Week &gt;</button>
+            </div>
+                            <div class="schedule-actions">
+                    <button class="cta-button secondary" id="schedule-settings">Schedule Settings</button>
+                    <button class="cta-button secondary" id="manage-students">Manage Students</button>
+                    <button class="cta-button secondary" id="test-rating-setup" style="background-color: #ff6b6b;">Test Rating Setup</button>
+                    <button class="cta-button secondary" id="force-show-modal" style="background-color: #4ecdc4;">Force Show Modal</button>
+                </div>
+        </div>
+
+                <div class="schedule-grid" id="schedule-grid">
+                    <!-- Schedule grid will be populated by JavaScript -->
+                </div>
+
+                <div class="schedule-legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #e6f3ff; border: 1px solid #b3d7ff;"></div>
+                        <span>Booked</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #e8f5e9; border: 1px solid #c8e6c9;"></div>
+                        <span>Available</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #ffebee; border: 1px solid #ffcdd2;"></div>
+                        <span>Unavailable</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Schedule Lesson Modal -->
+    <div id="schedule-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Schedule New Lesson</h2>
+            <form id="schedule-form">
+                <div class="form-group">
+                    <label for="student-name">Student Name</label>
+                    <select id="student-name" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="student-rating">Current Rating</label>
+                    <input type="number" id="student-rating" min="0" max="3000" required>
+                </div>
+                <div class="form-group">
+                    <label for="lesson-focus">Lesson Focus</label>
+                    <select id="lesson-focus" required>
+                        <option value="">Select focus area...</option>
+                        <option value="Opening Preparation">Opening Preparation</option>
+                        <option value="Middlegame Strategy">Middlegame Strategy</option>
+                        <option value="Endgame Training">Endgame Training</option>
+                        <option value="Tactical Training">Tactical Training</option>
+                        <option value="Game Analysis">Game Analysis</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="lesson-notes">Notes</label>
+                    <textarea id="lesson-notes" rows="3"></textarea>
+                </div>
+                <input type="hidden" id="selected-day">
+                <input type="hidden" id="selected-time">
+                <div class="modal-buttons">
+                    <button type="button" class="cta-button secondary" id="cancel-schedule">Cancel</button>
+                    <button type="submit" class="cta-button primary">Schedule Lesson</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Schedule Settings Modal -->
+    <div id="schedule-settings-modal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close-modal" id="close-schedule-settings">&times;</span>
+            <h2>Schedule Settings</h2>
+            <form id="schedule-settings-form">
+                <div class="form-group">
+                    <label for="start-time">Start Time:</label>
+                    <input type="time" id="start-time" name="startTime" required>
+                </div>
+                <div class="form-group">
+                    <label for="end-time">End Time:</label>
+                    <input type="time" id="end-time" name="endTime" required>
+                </div>
+                <div class="form-group">
+                    <label for="time-increment">Time Increment:</label>
+                    <select id="time-increment" name="timeIncrement" required>
+                        <option value="15">15 minutes</option>
+                        <option value="30" selected>30 minutes</option>
+                        <option value="45">45 minutes</option>
+                        <option value="60">1 hour</option>
+                        <option value="90">1.5 hours</option>
+                        <option value="120">2 hours</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Available Days:</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" name="days" value="Monday" checked> Monday</label>
+                        <label><input type="checkbox" name="days" value="Tuesday" checked> Tuesday</label>
+                        <label><input type="checkbox" name="days" value="Wednesday" checked> Wednesday</label>
+                        <label><input type="checkbox" name="days" value="Thursday" checked> Thursday</label>
+                        <label><input type="checkbox" name="days" value="Friday" checked> Friday</label>
+                        <label><input type="checkbox" name="days" value="Saturday"> Saturday</label>
+                        <label><input type="checkbox" name="days" value="Sunday"> Sunday</label>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="cta-button primary">Save Settings</button>
+                    <button type="button" class="cta-button secondary" id="reset-schedule">Reset Schedule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Manage Students Modal -->
+    <div id="manage-students-modal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <span class="close-modal" id="close-manage-students">&times;</span>
+            <h2>Manage Students</h2>
+            <div class="stats" style="margin-bottom: 1rem;">
+                <div class="stat-card">
+                    <div class="stat-number" id="ms-total-students">0</div>
+                    <div class="stat-label">Total Students</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="ms-unassigned-students">0</div>
+                    <div class="stat-label">Unassigned Students</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="ms-assigned-students">0</div>
+                    <div class="stat-label">Assigned Students</div>
+                </div>
+            </div>
+            <div class="action-buttons" style="margin-bottom: 1rem;">
+                <button class="btn btn-primary" id="ms-refresh-btn">Refresh List</button>
+                <button class="btn btn-danger" id="ms-remove-all-btn">Remove All Unassigned</button>
+            </div>
+            <div class="user-list" id="ms-user-list" style="max-height: 350px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <!-- Rating Setup Modal -->
+    <div id="rating-setup-modal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <span class="close-modal" id="close-rating-setup">&times;</span>
+            <h2>Welcome! Please Set Your Chess Rating</h2>
+            <p style="margin-bottom: 1.5rem; color: #666;">To provide the best experience for students, please enter your current chess rating.</p>
+            
+            <form id="rating-setup-form">
+                <div class="form-group">
+                    <label for="coach-rating">Chess Rating</label>
+                    <input type="number" id="coach-rating" name="coach-rating" min="0" max="3000" placeholder="e.g., 2200" required>
+                    <div style="font-size: 0.8rem; color: #666; margin-top: 0.25rem;">
+                        Enter your current chess rating (FIDE, USCF, or other official rating)
+                    </div>
+                </div>
+                
+                <div style="margin-top: 1.5rem; text-align: center;">
+                    <button type="button" class="cta-button secondary" id="skip-rating" style="margin-right: 1rem;">Skip for Now</button>
+                    <button type="submit" class="cta-button primary">Save Rating</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lesson Requests Modal -->
+    <div id="lesson-requests-modal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <span class="close-modal" id="close-lesson-requests">&times;</span>
+            <h2>Lesson Requests</h2>
+            <div id="requests-list"></div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer__container">
+            <p>&copy; 2024 Chess Coaching Platform. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if user is logged in as coach
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            const userType = localStorage.getItem('userType');
+            
+            if (!isLoggedIn || userType !== 'coach') {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Helper: Get current username
+            const username = localStorage.getItem('username');
+            
+            // Debug function to check if modal exists
+            function debugModalCheck() {
+                console.log('=== MODAL DEBUG CHECK ===');
+                const modal = document.getElementById('rating-setup-modal');
+                console.log('Rating setup modal found:', modal);
+                if (modal) {
+                    console.log('Modal display style:', modal.style.display);
+                    console.log('Modal visibility:', window.getComputedStyle(modal).display);
+                    console.log('Modal z-index:', window.getComputedStyle(modal).zIndex);
+                } else {
+                    console.error('Rating setup modal NOT FOUND in DOM!');
+                }
+                
+                const testBtn = document.getElementById('test-rating-setup');
+                console.log('Test button found:', testBtn);
+                
+                console.log('=== END MODAL DEBUG ===');
+            }
+            function getDefaultWeeklySchedule() {
+                // Generate 30-minute time slots from 9 AM to 5 PM
+                const slots = [];
+                for (let hour = 9; hour < 17; hour++) {
+                    for (let minute = 0; minute < 60; minute += 30) {
+                        const time = new Date(2000, 0, 1, hour, minute);
+                        const timeString = time.toLocaleTimeString('en-US', { 
+                            hour: 'numeric', 
+                            minute: '2-digit',
+                            hour12: true 
+                        });
+                        slots.push({ time: timeString, status: 'available' });
+                    }
+                }
+                return {
+                    'Monday': JSON.parse(JSON.stringify(slots)),
+                    'Tuesday': JSON.parse(JSON.stringify(slots)),
+                    'Wednesday': JSON.parse(JSON.stringify(slots)),
+                    'Thursday': JSON.parse(JSON.stringify(slots)),
+                    'Friday': JSON.parse(JSON.stringify(slots))
+                };
+            }
+            function isTimeSlotPast(day, time) {
+                const today = new Date();
+                const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                const currentDay = days[today.getDay()];
+                const dayIndex = days.indexOf(day);
+                const currentDayIndex = days.indexOf(currentDay);
+                const dayDiff = dayIndex - currentDayIndex;
+                if (dayDiff < 0) {
+                    return true;
+                }
+                if (dayDiff === 0) {
+                    const [hourStr, minuteStr] = time.match(/(\d+):(\d+)/).slice(1);
+                    const isPM = time.includes('PM');
+                    let hour = parseInt(hourStr);
+                    const minute = parseInt(minuteStr);
+                    if (isPM && hour !== 12) {
+                        hour += 12;
+                    } else if (!isPM && hour === 12) {
+                        hour = 0;
+                    }
+                    const slotTime = new Date();
+                    slotTime.setHours(hour, minute, 0);
+                    return today >= slotTime;
+                }
+                return false;
+            }
+            // Week navigation and per-week schedule logic
+            function getMondayOfWeek(date) {
+                const d = new Date(date);
+                const day = d.getDay();
+                const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+                d.setDate(diff);
+                d.setHours(0,0,0,0);
+                return d;
+            }
+            function getWeekKey(date) {
+                const monday = getMondayOfWeek(date);
+                return monday.toISOString().slice(0,10);
+            }
+            function getWeekRangeString(date) {
+                const monday = getMondayOfWeek(date);
+                const weekStart = new Date(monday);
+                const weekEnd = new Date(monday);
+                weekEnd.setDate(weekEnd.getDate() + 4);
+                return `${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()}`;
+            }
+            let currentWeekOffset = 0;
+            function getSelectedWeekDate() {
+                const today = new Date();
+                today.setDate(today.getDate() + currentWeekOffset * 7);
+                return getMondayOfWeek(today);
+            }
+            function getScheduleKeyForWeek(username, weekDate) {
+                return `scheduleData_${username}_${getWeekKey(weekDate)}`;
+            }
+            function saveSchedule(schedule, weekDate) {
+                const key = getScheduleKeyForWeek(username, weekDate);
+                localStorage.setItem(key, JSON.stringify(schedule));
+            }
+            function loadSchedule(weekDate) {
+                const key = getScheduleKeyForWeek(username, weekDate);
+                let storedSchedule = localStorage.getItem(key);
+                let schedule;
+            try {
+                if (storedSchedule) {
+                        schedule = JSON.parse(storedSchedule);
+                        if (!schedule.weeklySchedule) throw new Error('Corrupted schedule');
+                } else {
+                    throw new Error('No schedule');
+                }
+            } catch (e) {
+                    // Check if coach has custom settings
+                    const settings = localStorage.getItem(`scheduleSettings_${username}`);
+                    if (settings) {
+                        const settingsData = JSON.parse(settings);
+                        schedule = {
+                            students: {},
+                            weeklySchedule: createScheduleFromSettings(settingsData).weeklySchedule
+                        };
+                    } else {
+                        schedule = {
+                            students: {},
+                            weeklySchedule: getDefaultWeeklySchedule()
+                        };
+                    }
+                    saveSchedule(schedule, weekDate);
+                }
+                return schedule;
+            }
+            function updateWeekDisplay() {
+                const weekDate = getSelectedWeekDate();
+                document.getElementById('current-week').textContent = getWeekRangeString(weekDate);
+            }
+            document.getElementById('prev-week').addEventListener('click', function() {
+                currentWeekOffset--;
+                updateWeekDisplay();
+                renderSchedule();
+            });
+            document.getElementById('next-week').addEventListener('click', function() {
+                currentWeekOffset++;
+                updateWeekDisplay();
+                renderSchedule();
+            });
+            // Get coach data
+            const coachData = JSON.parse(localStorage.getItem('coachData') || '{}');
+            const userData = JSON.parse(localStorage.getItem('userData_' + username) || '{}');
+            const coachName = coachData.name || userData.name || username || 'Coach';
+            const coachTitle = coachData.title || userData.title || 'Chess Coach';
+            document.getElementById('coach-info').textContent = `${coachName} (${coachTitle})`;
+
+            // Function to check if a time slot is in the past
+            // This function is now redundant as per-week scheduling is implemented
+            // function isTimeSlotPast(day, time) {
+            //     const today = new Date();
+            //     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            //     const currentDay = days[today.getDay()];
+            //     const dayIndex = days.indexOf(day);
+            //     const currentDayIndex = days.indexOf(currentDay);
+            //     const dayDiff = dayIndex - currentDayIndex;
+            //     if (dayDiff < 0) {
+            //         return true;
+            //     }
+            //     if (dayDiff === 0) {
+            //         const [hourStr, minuteStr] = time.match(/(\d+):(\d+)/).slice(1);
+            //         const isPM = time.includes('PM');
+            //         let hour = parseInt(hourStr);
+            //         const minute = parseInt(minuteStr);
+            //         if (isPM && hour !== 12) {
+            //             hour += 12;
+            //         } else if (!isPM && hour === 12) {
+            //             hour = 0;
+            //         }
+            //         const slotTime = new Date();
+            //         slotTime.setHours(hour, minute, 0);
+            //         return today >= slotTime;
+            //     }
+            //     return false;
+            // }
+            function renderSchedule() {
+                sampleSchedule = loadSchedule(getSelectedWeekDate());
+                const grid = document.getElementById('schedule-grid');
+                grid.innerHTML = '';
+                const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+                if (!sampleSchedule.weeklySchedule || Object.keys(sampleSchedule.weeklySchedule).length === 0) {
+                    sampleSchedule.weeklySchedule = getDefaultWeeklySchedule();
+                    saveSchedule(sampleSchedule, getSelectedWeekDate());
+            }
+                weekdays.forEach(day => {
+                    const dayColumn = document.createElement('div');
+                    dayColumn.className = 'day-column';
+                    const dayHeader = document.createElement('div');
+                    dayHeader.className = 'day-header';
+                    dayHeader.innerHTML = `<h3>${day}</h3>`;
+                    dayColumn.appendChild(dayHeader);
+                    const slots = sampleSchedule.weeklySchedule[day] || [];
+                    slots.forEach(slot => {
+                        const isPast = isTimeSlotPast(day, slot.time) && currentWeekOffset === 0;
+                        if (isPast && slot.status === 'available') {
+                            timeSlot = document.createElement('div');
+                            timeSlot.className = 'time-slot unavailable';
+                            timeSlot.innerHTML = `<strong>${slot.time}</strong><br>Past`;
+                        } else if (slot.status === 'pending') {
+                            timeSlot = document.createElement('div');
+                            timeSlot.className = 'time-slot unavailable';
+                            timeSlot.innerHTML = `<strong>${slot.time}</strong><br>Pending`;
+                        } else if (slot.status === 'booked') {
+                            timeSlot = document.createElement('div');
+                            timeSlot.className = 'time-slot booked';
+                            const student = sampleSchedule.students[slot.student] || {};
+                            timeSlot.innerHTML = `
+                                <strong>${slot.time}</strong><br>
+                                ${slot.student} (${student.rating || 'N/A'})<br>
+                                ${student.focus || 'General Training'}
+                            `;
+                        } else if (slot.status === 'available' && !isPast) {
+                            timeSlot = document.createElement('div');
+                            timeSlot.className = 'time-slot available';
+                            timeSlot.innerHTML = `<strong>${slot.time}</strong><br>Available`;
+                            timeSlot.onclick = () => showModal(day, slot.time);
+                        } else {
+                            timeSlot = document.createElement('div');
+                            timeSlot.className = 'time-slot unavailable';
+                            timeSlot.innerHTML = `<strong>${slot.time}</strong><br>Unavailable`;
+                        }
+                        dayColumn.appendChild(timeSlot);
+                    });
+                    grid.appendChild(dayColumn);
+                });
+            }
+            // Modal elements
+            const modal = document.getElementById('schedule-modal');
+            const closeModal = document.querySelector('.close-modal');
+            const cancelButton = document.getElementById('cancel-schedule');
+            const scheduleForm = document.getElementById('schedule-form');
+            
+            // Schedule Settings Modal elements
+            const scheduleSettingsModal = document.getElementById('schedule-settings-modal');
+            const closeScheduleSettings = document.getElementById('close-schedule-settings');
+            const scheduleSettingsForm = document.getElementById('schedule-settings-form');
+            const resetScheduleBtn = document.getElementById('reset-schedule');
+            const scheduleSettingsBtn = document.getElementById('schedule-settings');
+            function populateStudentDropdown() {
+                const studentNameSelect = document.getElementById('student-name');
+                studentNameSelect.innerHTML = '';
+                const keys = Object.keys(localStorage);
+                const userKeys = keys.filter(key => key.startsWith('userData_'));
+                let foundStudent = false;
+                userKeys.forEach(key => {
+                    const userData = JSON.parse(localStorage.getItem(key));
+                    if (userData && userData.userType === 'student') {
+                        foundStudent = true;
+                        const option = document.createElement('option');
+                        option.value = userData.name || userData.username;
+                        option.textContent = userData.name || userData.username;
+                        studentNameSelect.appendChild(option);
+                    }
+                });
+                if (!foundStudent) {
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = 'No students registered';
+                    option.disabled = true;
+                    option.selected = true;
+                    studentNameSelect.appendChild(option);
+                }
+            }
+            function showModal(day, time) {
+                document.getElementById('selected-day').value = day;
+                document.getElementById('selected-time').value = time;
+                populateStudentDropdown();
+                modal.style.display = 'block';
+            }
+            function hideModal() {
+                modal.style.display = 'none';
+                scheduleForm.reset();
+            }
+            closeModal.onclick = hideModal;
+            cancelButton.onclick = hideModal;
+            window.onclick = function(event) {
+                if (event.target === modal) {
+                    hideModal();
+                }
+                if (event.target === manageStudentsModal) {
+                    manageStudentsModal.style.display = 'none';
+                }
+                if (event.target === scheduleSettingsModal) {
+                    scheduleSettingsModal.style.display = 'none';
+                }
+                if (event.target === document.getElementById('rating-setup-modal')) {
+                    document.getElementById('rating-setup-modal').style.display = 'none';
+                }
+            };
+            scheduleForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const day = document.getElementById('selected-day').value;
+                const time = document.getElementById('selected-time').value;
+                if (isTimeSlotPast(day, time) && currentWeekOffset === 0) {
+                    alert('Cannot schedule a lesson in the past. Please select a future time slot.');
+                    return;
+                }
+                const studentName = document.getElementById('student-name').value;
+                const studentRating = document.getElementById('student-rating').value;
+                const lessonFocus = document.getElementById('lesson-focus').value;
+                const notes = document.getElementById('lesson-notes').value;
+                if (!sampleSchedule.students) {
+                    sampleSchedule.students = {};
+                }
+                sampleSchedule.students[studentName] = {
+                    rating: parseInt(studentRating),
+                    focus: lessonFocus,
+                    notes: notes,
+                    coach: coachData.name || coachName
+                };
+                const daySchedule = sampleSchedule.weeklySchedule[day];
+                const timeSlot = daySchedule.find(slot => slot.time === time);
+                if (timeSlot) {
+                    timeSlot.status = 'booked';
+                    timeSlot.student = studentName;
+                }
+                saveSchedule(sampleSchedule, getSelectedWeekDate());
+                renderSchedule();
+                hideModal();
+                alert(`Lesson scheduled with ${studentName} for ${day} at ${time}`);
+            });
+            // --- Manage Students Modal Logic ---
+            const manageStudentsBtn = document.getElementById('manage-students');
+            const manageStudentsModal = document.getElementById('manage-students-modal');
+            const closeManageStudents = document.getElementById('close-manage-students');
+            const msUserList = document.getElementById('ms-user-list');
+            const msTotalStudents = document.getElementById('ms-total-students');
+            const msUnassignedStudents = document.getElementById('ms-unassigned-students');
+            const msAssignedStudents = document.getElementById('ms-assigned-students');
+            const msRefreshBtn = document.getElementById('ms-refresh-btn');
+            const msRemoveAllBtn = document.getElementById('ms-remove-all-btn');
+            function msLoadUsers() {
+                let totalStudents = 0;
+                let unassignedStudents = 0;
+                let assignedStudents = 0;
+                let usersHTML = '';
+                const keys = Object.keys(localStorage);
+                const userKeys = keys.filter(key => key.startsWith('userData_'));
+                userKeys.forEach(key => {
+                    const userData = JSON.parse(localStorage.getItem(key));
+                    if (userData && userData.userType === 'student') {
+                        totalStudents++;
+                        const isAssigned = userData.coach &&
+                            userData.coach !== 'Available Coach' &&
+                            userData.coach !== 'Unassigned' &&
+                            userData.coach.trim() !== '';
+                        if (isAssigned) {
+                            assignedStudents++;
+                            usersHTML += `
+                                <div class="user-card assigned">
+                                    <div class="user-header">
+                                        <div class="user-type student">Assigned Student</div>
+                                    </div>
+                                    <div class="user-name">${userData.name || userData.username}</div>
+                                    <div class="user-details">
+                                        <p><strong>Email:</strong> ${userData.email || 'N/A'}</p>
+                                        <p><strong>Rating:</strong> ${userData.rating || 'Not specified'}</p>
+                                        <p><strong>Coach:</strong> ${userData.coach}</p>
+                                    </div>
+                                    <button class="remove-btn" onclick="window.msRemoveUser('${userData.username}')">Remove Student</button>
+                                </div>
+                            `;
+                        } else {
+                            unassignedStudents++;
+                            usersHTML += `
+                                <div class="user-card">
+                                    <div class="user-header">
+                                        <div class="user-type unassigned">Unassigned Student</div>
+                                    </div>
+                                    <div class="user-name">${userData.name || userData.username}</div>
+                                    <div class="user-details">
+                                        <p><strong>Email:</strong> ${userData.email || 'N/A'}</p>
+                                        <p><strong>Rating:</strong> ${userData.rating || 'Not specified'}</p>
+                                        <p><strong>Coach:</strong> ${userData.coach || 'No coach assigned'}</p>
+                                    </div>
+                                    <button class="remove-btn" onclick="window.msRemoveUser('${userData.username}')">Remove Student</button>
+                                </div>
+                            `;
+                        }
+                    }
+                });
+                msUserList.innerHTML = usersHTML || '<p style="grid-column: 1 / -1; text-align: center; color: #666;">No students found.</p>';
+                msTotalStudents.textContent = totalStudents;
+                msUnassignedStudents.textContent = unassignedStudents;
+                msAssignedStudents.textContent = assignedStudents;
+            }
+            window.msRemoveUser = function(username) {
+                if (confirm(`Are you sure you want to remove the student "${username}"? This will also remove all their lessons from your schedule.`)) {
+                    localStorage.removeItem('userData_' + username);
+                    let schedule = loadSchedule(getSelectedWeekDate());
+                    let changed = false;
+                    Object.keys(schedule.weeklySchedule).forEach(day => {
+                        schedule.weeklySchedule[day].forEach(slot => {
+                            if (slot.status === 'booked' && slot.student === username) {
+                                slot.status = 'available';
+                                delete slot.student;
+                                changed = true;
+                            }
+                        });
+                    });
+                    if (schedule.students && schedule.students[username]) {
+                        delete schedule.students[username];
+                        changed = true;
+                    }
+                    if (changed) saveSchedule(schedule, getSelectedWeekDate());
+                    msLoadUsers();
+                    renderSchedule();
+                    alert(`Student "${username}" and all their lessons have been removed.`);
+                }
+            };
+            msRemoveAllBtn.addEventListener('click', function() {
+                const unassignedCount = parseInt(msUnassignedStudents.textContent);
+                if (unassignedCount === 0) {
+                    alert('No unassigned students to remove.');
+                    return;
+                }
+                if (confirm(`Are you sure you want to remove all ${unassignedCount} unassigned students? This action cannot be undone.`)) {
+                    const keys = Object.keys(localStorage);
+                    const userKeys = keys.filter(key => key.startsWith('userData_'));
+                    let removedCount = 0;
+                    userKeys.forEach(key => {
+                        const userData = JSON.parse(localStorage.getItem(key));
+                        if (userData && userData.userType === 'student') {
+                            const isAssigned = userData.coach &&
+                                userData.coach !== 'Available Coach' &&
+                                userData.coach !== 'Unassigned' &&
+                                userData.coach.trim() !== '';
+                            if (!isAssigned) {
+                                localStorage.removeItem(key);
+                                let schedule = loadSchedule(getSelectedWeekDate());
+                                let changed = false;
+                                Object.keys(schedule.weeklySchedule).forEach(day => {
+                                    schedule.weeklySchedule[day].forEach(slot => {
+                                        if (slot.status === 'booked' && slot.student === userData.username) {
+                                            slot.status = 'available';
+                                            delete slot.student;
+                                            changed = true;
+                                        }
+                                    });
+                                });
+                                if (schedule.students && schedule.students[userData.username]) {
+                                    delete schedule.students[userData.username];
+                                    changed = true;
+                                }
+                                if (changed) saveSchedule(schedule, getSelectedWeekDate());
+                                removedCount++;
+                            }
+                        }
+                    });
+                    msLoadUsers();
+                    renderSchedule();
+                    alert(`${removedCount} unassigned students and their lessons have been removed.`);
+                }
+            });
+            msRefreshBtn.addEventListener('click', function() {
+                msLoadUsers();
+            });
+            // Schedule Settings Functions
+            function loadScheduleSettings() {
+                const settings = JSON.parse(localStorage.getItem(`scheduleSettings_${username}`) || '{}');
+                document.getElementById('start-time').value = settings.startTime || '09:00';
+                document.getElementById('end-time').value = settings.endTime || '17:00';
+                document.getElementById('time-increment').value = settings.timeIncrement || '30'; // Default to 30 minutes
+                
+                // Set checked days
+                const selectedDays = settings.days || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+                document.querySelectorAll('input[name="days"]').forEach(checkbox => {
+                    checkbox.checked = selectedDays.includes(checkbox.value);
+                });
+            }
+
+            function generateTimeSlots(startTime, endTime, increment) {
+                const slots = [];
+                const start = new Date(`2000-01-01T${startTime}`);
+                const end = new Date(`2000-01-01T${endTime}`);
+                const incrementMs = increment * 60 * 1000;
+                
+                let current = new Date(start);
+                while (current < end) {
+                    const timeString = current.toLocaleTimeString('en-US', { 
+                        hour: 'numeric', 
+                        minute: '2-digit',
+                        hour12: true 
+                    });
+                    slots.push({ time: timeString, status: 'available' });
+                    current.setTime(current.getTime() + incrementMs);
+                }
+                return slots;
+            }
+
+            function createScheduleFromSettings(settings) {
+                const schedule = { weeklySchedule: {} };
+                const selectedDays = settings.days || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+                
+                selectedDays.forEach(day => {
+                    schedule.weeklySchedule[day] = generateTimeSlots(
+                        settings.startTime || '09:00',
+                        settings.endTime || '17:00',
+                        parseInt(settings.timeIncrement) || 30
+                    );
+                });
+                
+                return schedule;
+            }
+
+            // Schedule Settings Event Listeners
+            scheduleSettingsBtn.addEventListener('click', function() {
+                loadScheduleSettings();
+                scheduleSettingsModal.style.display = 'block';
+            });
+
+            closeScheduleSettings.onclick = function() {
+                scheduleSettingsModal.style.display = 'none';
+            };
+
+            scheduleSettingsForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(scheduleSettingsForm);
+                const settings = {
+                    startTime: formData.get('startTime'),
+                    endTime: formData.get('endTime'),
+                    timeIncrement: formData.get('timeIncrement'),
+                    days: Array.from(formData.getAll('days'))
+                };
+                
+                // Save settings
+                localStorage.setItem(`scheduleSettings_${username}`, JSON.stringify(settings));
+                
+                // Create new schedule based on settings
+                const newSchedule = createScheduleFromSettings(settings);
+                
+                // Save the new schedule for current week
+                saveSchedule(newSchedule, getSelectedWeekDate());
+                
+                // Re-render the schedule
+                renderSchedule();
+                
+                scheduleSettingsModal.style.display = 'none';
+                alert('Schedule settings updated successfully!');
+            });
+
+            resetScheduleBtn.addEventListener('click', function() {
+                if (confirm('Are you sure you want to reset your schedule? This will clear all booked lessons.')) {
+                    const settings = {
+                        startTime: '09:00',
+                        endTime: '17:00',
+                        timeIncrement: '30',
+                        days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+                    };
+                    
+                    localStorage.setItem(`scheduleSettings_${username}`, JSON.stringify(settings));
+                    const newSchedule = createScheduleFromSettings(settings);
+                    saveSchedule(newSchedule, getSelectedWeekDate());
+                    renderSchedule();
+                    
+                    scheduleSettingsModal.style.display = 'none';
+                    alert('Schedule has been reset to default settings.');
+                }
+            });
+
+            // Check if coach needs to set up rating (first time login)
+            function checkRatingSetup() {
+                const userData = JSON.parse(localStorage.getItem('userData_' + username) || '{}');
+                console.log('Checking rating setup for user:', username);
+                console.log('User data:', userData);
+                console.log('Has rating:', !!userData.rating);
+                
+                if (!userData.rating) {
+                    // Coach hasn't set their rating yet - show rating setup modal
+                    console.log('Showing rating setup modal');
+                    setTimeout(() => {
+                        const modal = document.getElementById('rating-setup-modal');
+                        modal.style.display = 'block';
+                        console.log('Rating modal display set to block');
+                    }, 500);
+                } else {
+                    console.log('Coach already has rating set:', userData.rating);
+                }
+            }
+
+            // Handle rating setup form submission
+            document.getElementById('rating-setup-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const rating = parseInt(document.getElementById('coach-rating').value);
+                
+                if (rating < 0 || rating > 3000) {
+                    alert('Please enter a valid rating between 0 and 3000.');
+                    return;
+                }
+                
+                // Update user data with rating
+                const userData = JSON.parse(localStorage.getItem('userData_' + username) || '{}');
+                userData.rating = rating;
+                localStorage.setItem('userData_' + username, JSON.stringify(userData));
+                
+                // Hide modal
+                document.getElementById('rating-setup-modal').style.display = 'none';
+                
+                alert('Rating saved successfully! Welcome to the platform.');
+            });
+
+            // Handle close button for rating setup modal
+            document.getElementById('close-rating-setup').addEventListener('click', function() {
+                document.getElementById('rating-setup-modal').style.display = 'none';
+            });
+
+            // Handle skip button for rating setup
+            document.getElementById('skip-rating').addEventListener('click', function() {
+                document.getElementById('rating-setup-modal').style.display = 'none';
+                alert('You can set your rating later in your profile settings.');
+            });
+
+            // Test button for rating setup (for debugging)
+            document.getElementById('test-rating-setup').addEventListener('click', function() {
+                console.log('Test button clicked - showing rating setup modal');
+                const modal = document.getElementById('rating-setup-modal');
+                console.log('Modal element found:', modal);
+                if (modal) {
+                    modal.style.display = 'block';
+                    console.log('Modal display set to block');
+                } else {
+                    console.error('Modal element not found!');
+                    alert('Modal element not found. Check console for details.');
+                }
+            });
+
+            // Force show modal button (bypasses all checks)
+            document.getElementById('force-show-modal').addEventListener('click', function() {
+                console.log('Force show button clicked');
+                const modal = document.getElementById('rating-setup-modal');
+                if (modal) {
+                    // Force show with inline styles
+                    modal.style.display = 'block';
+                    modal.style.position = 'fixed';
+                    modal.style.top = '0';
+                    modal.style.left = '0';
+                    modal.style.width = '100%';
+                    modal.style.height = '100%';
+                    modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+                    modal.style.zIndex = '9999';
+                    console.log('Modal forced to show with inline styles');
+                } else {
+                    alert('Modal still not found! Creating a simple alert instead.');
+                    const rating = prompt('Enter your chess rating (0-3000):');
+                    if (rating && !isNaN(rating) && rating >= 0 && rating <= 3000) {
+                        const userData = JSON.parse(localStorage.getItem('userData_' + username) || '{}');
+                        userData.rating = parseInt(rating);
+                        localStorage.setItem('userData_' + username, JSON.stringify(userData));
+                        alert('Rating saved: ' + rating);
+                    }
+                }
+            });
+
+            // Check if coach needs to set up schedule settings (first time login)
+            function checkFirstTimeSetup() {
+                const settings = localStorage.getItem(`scheduleSettings_${username}`);
+                if (!settings) {
+                    // First time login - show settings modal
+                    setTimeout(() => {
+                        loadScheduleSettings();
+                        scheduleSettingsModal.style.display = 'block';
+                        alert('Welcome! Please configure your schedule settings to get started.');
+                    }, 500);
+                }
+            }
+
+            manageStudentsBtn.addEventListener('click', function() {
+                msLoadUsers();
+                manageStudentsModal.style.display = 'block';
+            });
+            closeManageStudents.onclick = function() {
+                manageStudentsModal.style.display = 'none';
+            };
+            // --- Inline Lesson Requests Section Logic ---
+            // Remove all lesson requests section and related JS from this file. The schedule grid and logic should remain as originally implemented.
+            
+            // Initialize the schedule display
+            updateWeekDisplay();
+            renderSchedule();
+            
+            // Debug check
+            debugModalCheck();
+            alert('Coach schedule page loaded! Check console for modal debug info.');
+            
+            // Check for first-time setup - add delay to ensure DOM is ready
+            setTimeout(() => {
+                console.log('Running first-time setup checks...');
+                checkRatingSetup();
+                checkFirstTimeSetup();
+            }, 1000);
+            
+            // Handle logout
+            document.getElementById('logout-btn').addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('isLoggedIn');
+                localStorage.removeItem('userType');
+                localStorage.removeItem('username');
+                localStorage.removeItem('coachData');
+                window.location.href = 'login.html';
+            });
+        });
+    </script>
+</body>
+</html> 

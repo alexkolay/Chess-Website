@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registered Users - Chess Coaching Platform</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .users-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .user-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid var(--primary);
+        }
+
+        .user-card.coach {
+            border-left-color: #ff6b6b;
+        }
+
+        .user-card.student {
+            border-left-color: #4ecdc4;
+        }
+
+        .user-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .user-type {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .user-type.coach {
+            background-color: #ff6b6b;
+            color: white;
+        }
+
+        .user-type.student {
+            background-color: #4ecdc4;
+            color: white;
+        }
+
+        .user-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .user-details {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .user-details p {
+            margin: 0.25rem 0;
+        }
+
+        .stats-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .stat-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .clear-data-btn {
+            background-color: #ff4757;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+
+        .clear-data-btn:hover {
+            background-color: #ff3742;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar__container">
+            <a href="index.html" id="navbar__logo">Chess Coaching Platform</a>
+            <div class="navbar__toggle" id="mobile-menu">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+            <ul class="navbar__menu">
+                <li class="navbar__item">
+                    <a href="index.html" class="navbar__links">Home</a>
+                </li>
+                <li class="navbar__item">
+                    <a href="coaching.html" class="navbar__links">Coaching</a>
+                </li>
+                <li class="navbar__item">
+                    <a href="achievements.html" class="navbar__links">Achievements</a>
+                </li>
+
+                <li class="navbar__item">
+                    <a href="register.html" class="navbar__links">Register</a>
+                </li>
+                <li class="navbar__btn">
+                    <a href="login.html" class="button">Login</a>
+                </li>
+                <li class="navbar__item">
+                    <a href="users.html" class="navbar__links active">Users</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <section class="dashboard-section">
+            <div class="chess-pattern"></div>
+            <div class="dashboard__container">
+                <div class="dashboard-header">
+                    <h1>Registered Users</h1>
+                    <p>View all registered coaches and students on the platform</p>
+                </div>
+
+                <div class="stats-section">
+                    <div class="stat-card">
+                        <div class="stat-number" id="total-users">0</div>
+                        <div class="stat-label">Total Users</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="total-coaches">0</div>
+                        <div class="stat-label">Coaches</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="total-students">0</div>
+                        <div class="stat-label">Students</div>
+                    </div>
+                </div>
+
+                <div class="users-grid" id="users-grid">
+                    <!-- Users will be populated here -->
+                </div>
+
+                <div style="text-align: center; margin-top: 2rem;">
+                    <button class="clear-data-btn" id="clear-data-btn">Clear All Data (Reset)</button>
+                    <p style="font-size: 0.8rem; color: #666; margin-top: 0.5rem;">
+                        This will remove all registered users and reset the platform
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="footer__container">
+            <p>&copy; 2024 Chess Coaching Platform. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            function loadUsers() {
+                const usersGrid = document.getElementById('users-grid');
+                const totalUsersEl = document.getElementById('total-users');
+                const totalCoachesEl = document.getElementById('total-coaches');
+                const totalStudentsEl = document.getElementById('total-students');
+                
+                let totalUsers = 0;
+                let totalCoaches = 0;
+                let totalStudents = 0;
+                let usersHTML = '';
+
+                // Get all keys from localStorage
+                const keys = Object.keys(localStorage);
+                
+                // Filter for user data keys
+                const userKeys = keys.filter(key => key.startsWith('userData_'));
+                
+                userKeys.forEach(key => {
+                    const userData = JSON.parse(localStorage.getItem(key));
+                    if (userData) {
+                        totalUsers++;
+                        
+                        if (userData.userType === 'coach') {
+                            totalCoaches++;
+                            usersHTML += `
+                                <div class="user-card coach">
+                                    <div class="user-header">
+                                        <div class="user-type coach">Coach</div>
+                                    </div>
+                                    <div class="user-name">${userData.name || 'Coach'}</div>
+                                    <div class="user-details">
+                                        <p><strong>Email:</strong> ${userData.email}</p>
+                                        <p><strong>Title:</strong> ${userData.title || 'Chess Coach'}</p>
+                                        <p><strong>Specialization:</strong> ${userData.specialization || 'General Training'}</p>
+                                    </div>
+                                </div>
+                            `;
+                        } else if (userData.userType === 'student') {
+                            totalStudents++;
+                            usersHTML += `
+                                <div class="user-card student">
+                                    <div class="user-header">
+                                        <div class="user-type student">Student</div>
+                                    </div>
+                                    <div class="user-name">${userData.name || 'Student'}</div>
+                                    <div class="user-details">
+                                        <p><strong>Email:</strong> ${userData.email}</p>
+                                        <p><strong>Rating:</strong> ${userData.rating || 'Not specified'}</p>
+                                        <p><strong>Coach:</strong> ${userData.coach || 'Available Coach'}</p>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+                });
+
+                // Add demo users if they exist
+                const demoUsers = [
+                    {
+                        name: 'Alex Kolay',
+                        username: 'chessboss2020',
+                        userType: 'coach',
+                        title: 'FIDE Master',
+                        specialization: 'Opening Preparation and Endgame Technique',
+                        email: 'alex@chesscoaching.com'
+                    },
+                    {
+                        name: 'John',
+                        username: 'johnnyboy',
+                        userType: 'student',
+                        rating: 1200,
+                        coach: 'Alex Kolay',
+                        email: 'john@example.com'
+                    }
+                ];
+
+                demoUsers.forEach(user => {
+                    totalUsers++;
+                    if (user.userType === 'coach') {
+                        totalCoaches++;
+                        usersHTML += `
+                            <div class="user-card coach">
+                                <div class="user-header">
+                                    <div class="user-type coach">Coach (Demo)</div>
+                                </div>
+                                <div class="user-name">${user.name}</div>
+                                <div class="user-details">
+                                    <p><strong>Email:</strong> ${user.email}</p>
+                                    <p><strong>Title:</strong> ${user.title}</p>
+                                    <p><strong>Specialization:</strong> ${user.specialization}</p>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        totalStudents++;
+                        usersHTML += `
+                            <div class="user-card student">
+                                <div class="user-header">
+                                    <div class="user-type student">Student (Demo)</div>
+                                </div>
+                                <div class="user-name">${user.name}</div>
+                                <div class="user-details">
+                                    <p><strong>Email:</strong> ${user.email}</p>
+                                    <p><strong>Rating:</strong> ${user.rating}</p>
+                                    <p><strong>Coach:</strong> ${user.coach}</p>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+
+                usersGrid.innerHTML = usersHTML || '<p style="grid-column: 1 / -1; text-align: center; color: #666;">No users registered yet. <a href="register.html">Register here</a> to get started!</p>';
+                
+                totalUsersEl.textContent = totalUsers;
+                totalCoachesEl.textContent = totalCoaches;
+                totalStudentsEl.textContent = totalStudents;
+            }
+
+            // Load users on page load
+            loadUsers();
+
+            // Clear data button
+            document.getElementById('clear-data-btn').addEventListener('click', function() {
+                if (confirm('Are you sure you want to clear all data? This will remove all registered users and reset the platform.')) {
+                    // Clear all user data
+                    const keys = Object.keys(localStorage);
+                    keys.forEach(key => {
+                        if (key.startsWith('userData_') || key === 'scheduleData') {
+                            localStorage.removeItem(key);
+                        }
+                    });
+                    
+                    // Reload the page to show updated data
+                    loadUsers();
+                    alert('All data has been cleared!');
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

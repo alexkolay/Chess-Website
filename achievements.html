@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Achievements - Chess Coaching Platform</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .achievements-section {
+            padding: 4rem 0;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            position: relative;
+        }
+
+        .achievements__container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .achievements-header {
+            text-align: center;
+            margin-bottom: 4rem;
+            color: white;
+        }
+
+        .achievements-header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .achievements-header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .achievements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        .achievement-card {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .achievement-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #4ecdc4, #44a08d);
+        }
+
+        .achievement-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .achievement-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .achievement-card h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+
+        .achievement-card p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .achievement-date {
+            font-size: 0.9rem;
+            color: #888;
+            font-style: italic;
+        }
+
+        .achievement-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #4ecdc4;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .coaching-highlights {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 3rem;
+            margin-bottom: 4rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .coaching-highlights h2 {
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .highlights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+
+        .highlight-item {
+            text-align: center;
+            color: white;
+        }
+
+        .highlight-number {
+            font-size: 3rem;
+            font-weight: 700;
+            display: block;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .highlight-label {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .testimonials-section {
+            background: white;
+            border-radius: 15px;
+            padding: 3rem;
+            margin-bottom: 4rem;
+        }
+
+        .testimonials-section h2 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            color: #333;
+        }
+
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .testimonial-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 2rem;
+            border-left: 4px solid #4ecdc4;
+        }
+
+        .testimonial-text {
+            font-style: italic;
+            margin-bottom: 1rem;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .testimonial-author {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .testimonial-rating {
+            color: #4ecdc4;
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .cta-section {
+            text-align: center;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 3rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .cta-section h2 {
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .cta-section p {
+            color: white;
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        @media (max-width: 768px) {
+            .achievements-header h1 {
+                font-size: 2rem;
+            }
+            
+            .achievements-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .coaching-highlights {
+                padding: 2rem;
+            }
+            
+            .highlights-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar__container">
+            <a href="index.html" id="navbar__logo">Chess Coaching Platform</a>
+            <div class="navbar__toggle" id="mobile-menu">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+            <ul class="navbar__menu">
+                <li class="navbar__item">
+                    <a href="index.html" class="navbar__links">Home</a>
+                </li>
+                <li class="navbar__item">
+                    <a href="about.html" class="navbar__links">About</a>
+                </li>
+                <li class="navbar__item">
+                    <a href="achievements.html" class="navbar__links active">Achievements</a>
+                </li>
+                <li class="navbar__item">
+                    <a href="coaching.html" class="navbar__links">Coaching</a>
+                </li>
+
+                <li class="navbar__btn">
+                    <a href="login.html" class="button">Login</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <section class="achievements-section">
+            <div class="achievements__container">
+                <div class="achievements-header">
+                    <h1>Chess Achievements & Coaching Success</h1>
+                    <p>Discover my journey in chess, from competitive achievements to coaching excellence and student success stories.</p>
+                </div>
+
+                <!-- Coaching Highlights -->
+                <div class="coaching-highlights">
+                    <h2>Coaching Impact</h2>
+                    <div class="highlights-grid">
+                        <div class="highlight-item">
+                            <span class="highlight-number">50+</span>
+                            <div class="highlight-label">Students Coached</div>
+                        </div>
+                        <div class="highlight-item">
+                            <span class="highlight-number">200+</span>
+                            <div class="highlight-label">Lessons Delivered</div>
+                        </div>
+                        <div class="highlight-item">
+                            <span class="highlight-number">85%</span>
+                            <div class="highlight-label">Rating Improvement Rate</div>
+                        </div>
+                        <div class="highlight-item">
+                            <span class="highlight-number">15</span>
+                            <div class="highlight-label">Tournament Champions</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Personal Achievements -->
+                <div class="achievements-grid">
+                    <div class="achievement-card">
+                        <span class="achievement-icon">🏆</span>
+                        <h3>FIDE Master Title</h3>
+                        <p>Achieved the prestigious FIDE Master title through consistent performance in international tournaments and maintaining a rating above 2300.</p>
+                        <div class="achievement-date">Awarded 2022</div>
+                        <div class="achievement-stats">
+                            <div class="stat-item">
+                                <span class="stat-number">2350</span>
+                                <span class="stat-label">Peak Rating</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number">25</span>
+                                <span class="stat-label">Tournaments</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="achievement-card">
+                        <span class="achievement-icon">🥇</span>
+                        <h3>National Champion</h3>
+                        <p>Won the National Chess Championship, defeating top players in the country and demonstrating mastery of both tactical and strategic play.</p>
+                        <div class="achievement-date">2021</div>
+                        <div class="achievement-stats">
+                            <div class="stat-item">
+                                <span class="stat-number">9/11</span>
+                                <span class="stat-label">Score</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number">0</span>
+                                <span class="stat-label">Losses</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="achievement-card">
+                        <span class="achievement-icon">🎯</span>
+                        <h3>Opening Specialist</h3>
+                        <p>Developed deep expertise in opening theory, particularly the Sicilian Defense and Ruy Lopez, with published analysis and successful tournament applications.</p>
+                        <div class="achievement-date">Ongoing</div>
+                        <div class="achievement-stats">
+                            <div class="stat-item">
+                                <span class="stat-number">95%</span>
+                                <span class="stat-label">Win Rate</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number">50+</span>
+                                <span class="stat-label">Games</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="achievement-card">
+                        <span class="achievement-icon">📚</span>
+                        <h3>Chess Author</h3>
+                        <p>Published comprehensive chess training materials and authored articles on advanced tactics, endgame technique, and tournament preparation strategies.</p>
+                        <div class="achievement-date">2020-2024</div>
+                        <div class="achievement-stats">
+                            <div class="stat-item">
+                                <span class="stat-number">12</span>
+                                <span class="stat-label">Articles</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number">3</span>
+                                <span class="stat-label">Books</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="achievement-card">
+                        <span class="achievement-icon">🌟</span>
+                        <h3>Coaching Excellence</h3>
+                        <p>Recognized for outstanding coaching achievements, helping students improve their ratings by an average of 200+ points within 6 months of training.</p>
+                        <div class="achievement-date">2023</div>
+                        <div class="achievement-stats">
+                            <div class="stat-item">
+                                <span class="stat-number">200+</span>
+                                <span class="stat-label">Rating Gain</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number">6</span>
+                                <span class="stat-label">Months</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="achievement-card">
+                        <span class="achievement-icon">🏅</span>
+                        <h3>International Experience</h3>
+                        <p>Competed in international tournaments across Europe and Asia, gaining valuable experience against diverse playing styles and cultural approaches to chess.</p>
+                        <div class="achievement-date">2019-2024</div>
+                        <div class="achievement-stats">
+                            <div class="stat-item">
+                                <span class="stat-number">15</span>
+                                <span class="stat-label">Countries</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number">45</span>
+                                <span class="stat-label">Tournaments</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Student Testimonials -->
+                <div class="testimonials-section">
+                    <h2>Student Success Stories</h2>
+                    <div class="testimonials-grid">
+                        <div class="testimonial-card">
+                            <div class="testimonial-rating">⭐⭐⭐⭐⭐</div>
+                            <div class="testimonial-text">
+                                "Alex's coaching completely transformed my game. I went from 1200 to 1800 in just 8 months. His opening preparation methods are incredible!"
+                            </div>
+                            <div class="testimonial-author">- Michael Chen, Student</div>
+                        </div>
+                        <div class="testimonial-card">
+                            <div class="testimonial-rating">⭐⭐⭐⭐⭐</div>
+                            <div class="testimonial-text">
+                                "The endgame training sessions were game-changing. I've won so many games from equal positions thanks to Alex's techniques."
+                            </div>
+                            <div class="testimonial-author">- Sarah Johnson, Student</div>
+                        </div>
+                        <div class="testimonial-card">
+                            <div class="testimonial-rating">⭐⭐⭐⭐⭐</div>
+                            <div class="testimonial-text">
+                                "Best chess coach I've ever had. Alex's tournament preparation strategies helped me win my first major tournament!"
+                            </div>
+                            <div class="testimonial-author">- David Rodriguez, Student</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Call to Action -->
+                <div class="cta-section">
+                    <h2>Ready to Start Your Chess Journey?</h2>
+                    <p>Join the ranks of successful students who have transformed their game under expert guidance.</p>
+                    <a href="login.html" class="cta-button primary">Start Learning Today</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="footer__container">
+            <p>&copy; 2024 Chess Coaching Platform. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html> 

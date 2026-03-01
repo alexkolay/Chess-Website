@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Chess Coaching Platform</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar__container">
+            <a href="index.html" id="navbar__logo">Chess Coaching Platform</a>
+            <div class="navbar__toggle" id="mobile-menu">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+            <ul class="navbar__menu">
+                <li class="navbar__item">
+                    <a href="index.html" class="navbar__links">Home</a>
+                </li>
+                <li class="navbar__item">
+                    <a href="coaches.html" class="navbar__links">Coaches</a>
+                </li>
+
+                <li class="navbar__item">
+                    <a href="register.html" class="navbar__links active">Register</a>
+                </li>
+                <li class="navbar__btn">
+                    <a href="login.html" class="button">Login</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        <section class="register-section">
+            <div class="chess-pattern"></div>
+            <div class="register__container">
+                <div class="register-card">
+                    <h1>Create Your Account</h1>
+                    <form id="register-form" class="register-form">
+                        <div class="form-group">
+                            <label for="userType">I am a:</label>
+                            <select id="userType" name="userType" required>
+                                <option value="student">Student</option>
+                                <option value="coach">Coach</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="fullName">Full Name</label>
+                            <input type="text" id="fullName" name="fullName" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="username">Username</label>
+                            <input type="text" id="username" name="username" required>
+                            <div class="requirements">Must be at least 4 characters long</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                        
+                        <!-- Coach-specific fields -->
+                        <div id="coach-fields" style="display: none;">
+                            <div class="form-group">
+                                <label for="title">Title/Credentials</label>
+                                <input type="text" id="title" name="title" placeholder="e.g., FIDE Master, National Master">
+                            </div>
+                            <div class="form-group">
+                                <label for="specialization">Specialization</label>
+                                <input type="text" id="specialization" name="specialization" placeholder="e.g., Opening Preparation, Endgame Technique">
+                            </div>
+                        </div>
+                        
+                        <!-- Student-specific fields -->
+                        <div id="student-fields" style="display: none;">
+                            <div class="form-group">
+                                <label for="rating">Current Rating (if any)</label>
+                                <input type="number" id="rating" name="rating" min="0" max="3000" placeholder="e.g., 1200">
+                            </div>
+                            <div class="form-group" id="coach-select-group" style="display: none;">
+                                <label><strong>Select Your Coach <span style="color: red;">*</span></strong></label>
+                                <div id="coach-selection" style="display: flex; flex-wrap: wrap; gap: 1rem;"></div>
+                                <input type="hidden" id="selected-coach" required>
+                                <div id="coach-error" class="error-message" style="display:none;"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" name="password" required>
+                            <div class="requirements">
+                                Must be at least 8 characters long and include:
+                                <ul>
+                                    <li id="length">8+ characters</li>
+                                    <li id="uppercase">1 uppercase letter</li>
+                                    <li id="lowercase">1 lowercase letter</li>
+                                    <li id="number">1 number</li>
+                                    <li id="special">1 special character</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmPassword">Confirm Password</label>
+                            <input type="password" id="confirmPassword" name="confirmPassword" required>
+                            <div class="requirements" id="match-message">Passwords must match</div>
+                        </div>
+                        <div id="register-error" class="error-message"></div>
+                        <button type="submit" class="cta-button primary">Create Account</button>
+                    </form>
+                    <p class="login-link">Already have an account? <a href="login.html">Login here</a></p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="footer__container">
+            <p>&copy; 2024 Chess Coaching Platform. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('register-form');
+            const password = document.getElementById('password');
+            const confirmPassword = document.getElementById('confirmPassword');
+            const username = document.getElementById('username');
+            const userType = document.getElementById('userType');
+            const coachFields = document.getElementById('coach-fields');
+            const studentFields = document.getElementById('student-fields');
+            const errorDiv = document.getElementById('register-error');
+            const requirements = {
+                length: document.getElementById('length'),
+                uppercase: document.getElementById('uppercase'),
+                lowercase: document.getElementById('lowercase'),
+                number: document.getElementById('number'),
+                special: document.getElementById('special')
+            };
+
+            // Show/hide fields based on user type
+            function renderCoachSelection() {
+                const coachSelectGroup = document.getElementById('coach-select-group');
+                coachSelectGroup.style.display = 'block';
+                const coachSelection = document.getElementById('coach-selection');
+                coachSelection.innerHTML = '';
+                const keys = Object.keys(localStorage);
+                const userKeys = keys.filter(key => key.startsWith('userData_'));
+                let foundCoach = false;
+                userKeys.forEach(key => {
+                    const userData = JSON.parse(localStorage.getItem(key));
+                    if (userData && userData.userType === 'coach') {
+                        foundCoach = true;
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'coach-btn';
+                        btn.style = 'border: 2px solid #4ecdc4; border-radius: 8px; padding: 1rem; background: #fff; cursor: pointer; min-width: 200px; transition: background 0.2s;';
+                        btn.innerHTML = `<strong>${userData.name}</strong><br>Title: ${userData.title || 'Coach'}<br>Specialization: ${userData.specialization || 'General Training'}`;
+                        btn.onclick = function() {
+                            // Deselect all
+                            document.querySelectorAll('.coach-btn').forEach(b => b.style.background = '#fff');
+                            btn.style.background = '#e8f5e9';
+                            document.getElementById('selected-coach').value = userData.name;
+                            document.getElementById('coach-error').style.display = 'none';
+                        };
+                        coachSelection.appendChild(btn);
+                    }
+                });
+                if (!foundCoach) {
+                    coachSelection.innerHTML = '<p style="color: #888;">No coaches available. Please try again later.</p>';
+                }
+            }
+            // Show/hide fields based on user type
+            userType.addEventListener('change', function() {
+                if (this.value === 'student') {
+                    studentFields.style.display = 'block';
+                    coachFields.style.display = 'none';
+                    renderCoachSelection();
+                } else {
+                    studentFields.style.display = 'none';
+                    coachFields.style.display = 'block';
+                    document.getElementById('coach-select-group').style.display = 'none';
+                }
+            });
+
+            // Initialize fields on page load
+            userType.dispatchEvent(new Event('change'));
+
+            // Password validation function
+            function validatePassword(value) {
+                const checks = {
+                    length: value.length >= 8,
+                    uppercase: /[A-Z]/.test(value),
+                    lowercase: /[a-z]/.test(value),
+                    number: /[0-9]/.test(value),
+                    special: /[!@#$%^&*(),.?":{}|<>]/.test(value)
+                };
+
+                // Update requirement list styling
+                Object.keys(checks).forEach(check => {
+                    if (checks[check]) {
+                        requirements[check].classList.add('met');
+                        requirements[check].classList.remove('unmet');
+                    } else {
+                        requirements[check].classList.add('unmet');
+                        requirements[check].classList.remove('met');
+                    }
+                });
+
+                return Object.values(checks).every(Boolean);
+            }
+
+            // Real-time password validation
+            password.addEventListener('input', function() {
+                validatePassword(this.value);
+                
+                // Check if passwords match
+                if (confirmPassword.value) {
+                    const matchMessage = document.getElementById('match-message');
+                    if (this.value === confirmPassword.value) {
+                        matchMessage.classList.add('met');
+                        matchMessage.classList.remove('unmet');
+                    } else {
+                        matchMessage.classList.add('unmet');
+                        matchMessage.classList.remove('met');
+                    }
+                }
+            });
+
+            // Confirm password validation
+            confirmPassword.addEventListener('input', function() {
+                const matchMessage = document.getElementById('match-message');
+                if (this.value === password.value) {
+                    matchMessage.classList.add('met');
+                    matchMessage.classList.remove('unmet');
+                } else {
+                    matchMessage.classList.add('unmet');
+                    matchMessage.classList.remove('met');
+                }
+            });
+
+            // Form submission
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                errorDiv.style.display = 'none';
+
+                // Validate username length
+                if (username.value.length < 4) {
+                    errorDiv.textContent = 'Username must be at least 4 characters long';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+
+                // Check if username already exists
+                if (localStorage.getItem('userData_' + username.value)) {
+                    errorDiv.textContent = 'Username already exists. Please choose a different username.';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+
+                // Validate password
+                if (!validatePassword(password.value)) {
+                    errorDiv.textContent = 'Password does not meet all requirements';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+
+                // Check if passwords match
+                if (password.value !== confirmPassword.value) {
+                    errorDiv.textContent = 'Passwords do not match';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+
+                // If all validations pass, store the user data
+                const userData = {
+                    username: username.value,
+                    name: document.getElementById('fullName').value,
+                    email: document.getElementById('email').value,
+                    userType: userType.value,
+                    password: password.value // In a real app, this should be hashed
+                };
+
+                // Add user type specific data
+                if (userType.value === 'coach') {
+                    userData.title = document.getElementById('title').value;
+                    userData.specialization = document.getElementById('specialization').value;
+                } else {
+                    userData.rating = document.getElementById('rating').value || 1200;
+                    const selectedCoach = document.getElementById('selected-coach').value;
+                    if (!selectedCoach) {
+                        // Check if there are any coaches available
+                        const keys = Object.keys(localStorage);
+                        const userKeys = keys.filter(key => key.startsWith('userData_'));
+                        const hasCoaches = userKeys.some(key => {
+                            try {
+                                const userData = JSON.parse(localStorage.getItem(key));
+                                return userData && userData.userType === 'coach';
+                            } catch (e) {
+                                return false;
+                            }
+                        });
+                        
+                        if (hasCoaches) {
+                            document.getElementById('coach-error').textContent = 'Please select a coach.';
+                            document.getElementById('coach-error').style.display = 'block';
+                            return;
+                        } else {
+                            // No coaches available yet, allow registration without coach
+                            userData.coach = 'Available Coach';
+                        }
+                    } else {
+                        userData.coach = selectedCoach;
+                    }
+                }
+
+                // Store user data
+                localStorage.setItem('userData_' + username.value, JSON.stringify(userData));
+
+                // Show success message and redirect
+                alert('Account created successfully! Please log in.');
+                window.location.href = 'login.html';
+            });
+        });
+    </script>
+</body>
+</html> 

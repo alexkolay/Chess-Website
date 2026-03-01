@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Coach Data Debugger</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .coach-data { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .coach-data h3 { margin-top: 0; color: #333; }
+        .field { margin: 5px 0; }
+        .field strong { display: inline-block; width: 150px; }
+        .missing { color: red; }
+        .found { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Coach Data Debugger</h1>
+    <p><strong>How to use:</strong> This page shows what data is stored for each coach. Look for the "Expertise" field - if it shows in <span style="color: green; font-weight: bold;">green</span>, it's saved correctly. If it shows in <span style="color: red; font-weight: bold;">red</span>, it's missing.</p>
+    <button onclick="location.reload()" style="padding: 10px 20px; font-size: 16px; margin-bottom: 20px; background: #4ecdc4; color: white; border: none; border-radius: 5px; cursor: pointer;">Refresh Data</button>
+    <div id="results"></div>
+    
+    <script>
+        const results = document.getElementById('results');
+        const keys = Object.keys(localStorage);
+        const userKeys = keys.filter(key => key.startsWith('userData_'));
+        
+        let html = '';
+        let coachCount = 0;
+        
+        userKeys.forEach(key => {
+            try {
+                const userData = JSON.parse(localStorage.getItem(key));
+                if (userData && userData.userType === 'coach') {
+                    coachCount++;
+                    const username = key.replace('userData_', '');
+                    html += `<div class="coach-data">`;
+                    html += `<h3>Coach: ${userData.name || userData.username || username}</h3>`;
+                    html += `<div class="field"><strong>Username:</strong> ${username}</div>`;
+                    html += `<div class="field"><strong>Name:</strong> ${userData.name || 'NOT SET'}</div>`;
+                    html += `<div class="field"><strong>Title:</strong> ${userData.title || 'NOT SET'}</div>`;
+                    html += `<div class="field"><strong>Expertise:</strong> <span class="${userData.expertise ? 'found' : 'missing'}">${userData.expertise || 'NOT SET (This is the problem!)'}</span></div>`;
+                    html += `<div class="field"><strong>Specialization:</strong> ${userData.specialization || 'NOT SET'}</div>`;
+                    html += `<div class="field"><strong>Email:</strong> ${userData.email || 'NOT SET'}</div>`;
+                    html += `<div class="field"><strong>Raw Data:</strong> <pre style="background: white; padding: 10px; overflow-x: auto;">${JSON.stringify(userData, null, 2)}</pre></div>`;
+                    html += `</div>`;
+                }
+            } catch(e) {
+                html += `<div class="coach-data" style="background: #ffebee;"><h3>Error reading: ${key}</h3><p>${e.message}</p></div>`;
+            }
+        });
+        
+        if (coachCount === 0) {
+            html = '<p style="color: red; font-size: 18px;">No coaches found in localStorage!</p>';
+        } else {
+            html = `<p style="font-size: 18px; margin-bottom: 20px;">Found ${coachCount} coach(es)</p>` + html;
+        }
+        
+        results.innerHTML = html;
+    </script>
+</body>
+</html>
+
