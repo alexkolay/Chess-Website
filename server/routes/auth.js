@@ -16,7 +16,7 @@ function buildUserResponse(user) {
         profile: user.profile,
         hourlyRate: user.hourlyRate,
         expertise: user.expertise,
-        coach: user.coach
+        coaches: user.coaches || []
     };
 }
 
@@ -69,7 +69,7 @@ router.post('/register', async (req, res) => {
             if (!coach) {
                 return res.status(400).json({ message: 'Coach not found' });
             }
-            userData.coach = coach._id;
+            userData.coaches = [coach._id];
         }
 
         const user = new User(userData);
@@ -93,7 +93,7 @@ router.post('/login', async (req, res) => {
         }
 
         const query = username ? { username } : { email };
-        const user = await User.findOne(query).populate('coach', 'username profile hourlyRate expertise');
+        const user = await User.findOne(query).populate('coaches', 'username profile hourlyRate expertise');
 
         if (!user) {
             return res.status(400).json({ message: 'Invalid credentials' });
@@ -117,7 +117,7 @@ router.get('/me', auth, async (req, res) => {
     try {
         const user = await User.findById(req.user.userId)
             .select('-password')
-            .populate('coach', 'username profile hourlyRate expertise');
+            .populate('coaches', 'username profile hourlyRate expertise');
         if (!user) return res.status(404).json({ message: 'User not found' });
         res.json(user);
     } catch (err) {

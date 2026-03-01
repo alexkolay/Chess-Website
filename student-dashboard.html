@@ -208,7 +208,6 @@
                 <div class="dashboard-header">
                     <h1>Welcome, <span id="student-name"></span></h1>
                     <p>Your Coach: <span id="coach-name"></span></p>
-                    <button onclick="testCoachSelection()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #4ecdc4; color: white; border: none; border-radius: 4px; cursor: pointer;">Test Coach Selection</button>
                 </div>
                 <div id="student-notifications" style="margin-bottom: 1rem;"></div>
                 <div style="margin-bottom: 1rem;">
@@ -381,146 +380,6 @@
             return schedule;
         }
 
-        // Find available coaches for a specific time slot (only student's assigned coaches)
-        function findAvailableCoaches(day, time) {
-            console.log('findAvailableCoaches called with:', day, time);
-            const availableCoaches = [];
-            const keys = Object.keys(localStorage);
-            const userKeys = keys.filter(key => key.startsWith('userData_'));
-            console.log('User keys found:', userKeys);
-            
-            // Get student's assigned coaches
-            const studentData = JSON.parse(localStorage.getItem('studentData') || '{}');
-            const userData = JSON.parse(localStorage.getItem('userData_' + localStorage.getItem('username')) || '{}');
-            let studentCoaches = studentData.coaches || userData.coaches || [];
-            if (!Array.isArray(studentCoaches)) {
-                studentCoaches = [studentData.coach || userData.coach || 'Available Coach'];
-            }
-            
-            // Also get coach usernames if available
-            let studentCoachUsernames = userData.coachUsernames || [];
-            if (!Array.isArray(studentCoachUsernames)) {
-                studentCoachUsernames = [];
-            }
-            
-            console.log('Student coaches:', studentCoaches);
-            console.log('Student coach usernames:', studentCoachUsernames);
-            
-            let coachCount = 0;
-            
-            userKeys.forEach(key => {
-                const userData = JSON.parse(localStorage.getItem(key));
-                console.log('Checking user data:', key, userData);
-                if (userData && userData.userType === 'coach') {
-                    // Check if this coach is assigned to the student
-                    const isAssignedCoach = studentCoaches.includes(userData.name) || 
-                                          studentCoaches.includes(userData.username) ||
-                                          studentCoachUsernames.includes(userData.username);
-                    
-                    console.log('Coach', userData.username, 'is assigned to student:', isAssignedCoach);
-                    
-                    if (isAssignedCoach) {
-                        coachCount++;
-                        console.log('Found assigned coach:', userData.username, userData);
-                        
-                        // Check if this coach has a schedule for the current week
-                        const weekKey = getWeekKey(getSelectedWeekDate());
-                        const scheduleKey = `scheduleData_${userData.username}_${weekKey}`;
-                        console.log('Looking for schedule key:', scheduleKey);
-                        const scheduleData = localStorage.getItem(scheduleKey);
-                        
-                        if (scheduleData) {
-                            const schedule = JSON.parse(scheduleData);
-                            console.log('Schedule for', userData.username, ':', schedule);
-                            if (schedule.weeklySchedule && schedule.weeklySchedule[day]) {
-                                console.log('Day schedule:', schedule.weeklySchedule[day]);
-                                // Try to find exact match first
-                                let slot = schedule.weeklySchedule[day].find(s => s.time === time);
-                                
-                                // If no exact match, try to find a slot that overlaps with the requested time
-                                if (!slot) {
-                                    // For 30-minute student slots, check if any coach slot overlaps
-                                    slot = schedule.weeklySchedule[day].find(s => {
-                                        // Convert times to minutes for comparison
-                                        const requestTime = convertTimeToMinutes(time);
-                                        const slotTime = convertTimeToMinutes(s.time);
-                                        // Check if the requested time falls within a 30-minute coach slot
-                                        // (coach slots should also be 30 minutes, so exact match or within 30 min)
-                                        const isOverlapping = requestTime >= slotTime && requestTime < slotTime + 30;
-                                        console.log(`Checking overlap: ${time} (${requestTime} min) vs ${s.time} (${slotTime} min) - ${isOverlapping ? 'OVERLAPS' : 'no overlap'}`);
-                                        return isOverlapping;
-                                    });
-                                }
-                                
-                                console.log('Looking for time:', time);
-                                console.log('Available times in schedule:', schedule.weeklySchedule[day].map(s => s.time));
-                                console.log('Found slot:', slot);
-                                if (slot && slot.status === 'available') {
-                                    availableCoaches.push({
-                                        username: userData.username,
-                                        name: userData.name || userData.username,
-                                        title: userData.title || 'Chess Coach',
-                                        rating: userData.rating || 2000,
-                                        expertise: userData.specialization || 'General Training'
-                                    });
-                                }
-                            }
-                        } else {
-                            console.log('No schedule data found for', userData.username, '- assuming available');
-                            // If coach doesn't have a schedule, assume they're available
-                            // Create a default schedule for them using 90-minute slots (same as coach schedule)
-                            // Generate 30-minute time slots from 9 AM to 5 PM
-                            const defaultSlots = [];
-                            for (let hour = 9; hour < 17; hour++) {
-                                for (let minute = 0; minute < 60; minute += 30) {
-                                    const time = new Date(2000, 0, 1, hour, minute);
-                                    const timeString = time.toLocaleTimeString('en-US', { 
-                                        hour: 'numeric', 
-                                        minute: '2-digit',
-                                        hour12: true 
-                                    });
-                                    defaultSlots.push({ time: timeString, status: 'available' });
-                                }
-                            }
-                            const defaultSchedule = {
-                                students: {},
-                                weeklySchedule: {
-                                    'Monday': JSON.parse(JSON.stringify(defaultSlots)),
-                                    'Tuesday': JSON.parse(JSON.stringify(defaultSlots)),
-                                    'Wednesday': JSON.parse(JSON.stringify(defaultSlots)),
-                                    'Thursday': JSON.parse(JSON.stringify(defaultSlots)),
-                                    'Friday': JSON.parse(JSON.stringify(defaultSlots))
-                                }
-                            };
-                            
-                            // Check if the requested time overlaps with any default slot
-                            const requestTime = convertTimeToMinutes(time);
-                            const isAvailable = defaultSchedule.weeklySchedule[day].some(slot => {
-                                const slotTime = convertTimeToMinutes(slot.time);
-                                // Check if the requested time falls within a 30-minute slot
-                                const isOverlapping = requestTime >= slotTime && requestTime < slotTime + 30;
-                                console.log(`Default schedule overlap: ${time} (${requestTime} min) vs ${slot.time} (${slotTime} min) - ${isOverlapping ? 'OVERLAPS' : 'no overlap'}`);
-                                return isOverlapping;
-                            });
-                            
-                            if (isAvailable) {
-                                availableCoaches.push({
-                                    username: userData.username,
-                                    name: userData.name || userData.username,
-                                    title: userData.title || 'Chess Coach',
-                                    rating: userData.rating || 2000,
-                                    expertise: userData.specialization || 'General Training'
-                                });
-                            }
-                        }
-                    }
-                }
-            });
-            
-            console.log('Total coaches found:', coachCount);
-            console.log('Available coaches found:', availableCoaches);
-            return availableCoaches;
-        }
 
         // Convert time string to minutes since midnight
         function convertTimeToMinutes(timeStr) {
@@ -563,385 +422,72 @@
 
 
 
-            // Show time slot selection modal
+            // Show time slot selection modal — all future slots are selectable
             function showTimeSlotModal() {
+                if (myCoaches.length === 0) {
+                    alert('You need at least one coach before you can request a lesson. Use "Join More Coaches" to add one.');
+                    return;
+                }
                 const timeSlotsGrid = document.getElementById('available-time-slots');
                 const timeSlots = generateTimeSlots();
                 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-                
-                let html = '<div style="margin-bottom: 1rem;"><strong>Select a day and time:</strong></div>';
-                
+
+                let html = '<div style="margin-bottom: 1rem;"><strong>Select a day and time to request a lesson:</strong></div>';
+
                 days.forEach(day => {
                     html += `<div style="margin-bottom: 1.5rem;">
                         <h3 style="color: #333; margin-bottom: 0.5rem;">${day}</h3>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 0.5rem;">`;
-                    
+
                     timeSlots.forEach(time => {
-                        const availableCoaches = findAvailableCoaches(day, time);
-                        const isAvailable = availableCoaches.length > 0;
-                        
-                        html += `<div class="time-slot-option ${isAvailable ? 'available' : 'unavailable'}" 
-                            ${isAvailable ? `onclick="selectTimeSlot('${day}', '${time}')"` : ''}>
+                        const past = isTimeSlotPast(day, time);
+                        html += `<div class="time-slot-option ${past ? 'unavailable' : 'available'}"
+                            ${past ? '' : `onclick="selectTimeSlot('${day}', '${time}')"` }>
                             <div style="font-weight: 600;">${time}</div>
-                            <div style="font-size: 0.8rem; color: #666;">
-                                ${isAvailable ? `${availableCoaches.length} coach${availableCoaches.length > 1 ? 'es' : ''} available` : 'No coaches available'}
-                            </div>
+                            <div style="font-size: 0.8rem; color: #666;">${past ? 'Past' : 'Request'}</div>
                         </div>`;
                     });
-                    
+
                     html += '</div></div>';
                 });
-                
+
                 timeSlotsGrid.innerHTML = html;
                 document.getElementById('time-slot-modal').style.display = 'block';
             }
 
-            // Select time slot and show coach selection
+            // Select time slot → populate coach dropdown from session coaches, show selection modal
             window.selectTimeSlot = function(day, time) {
-                const availableCoaches = findAvailableCoaches(day, time);
-                
-                if (availableCoaches.length === 0) {
-                    alert('No coaches available for this time slot.');
-                    return;
-                }
-                
-                // Store selected time slot
                 window.selectedDay = day;
                 window.selectedTime = time;
-                
-                // Show coach selection modal
-                const coachesList = document.getElementById('available-coaches-list');
-                document.getElementById('selected-time-display').textContent = `${day} at ${time}`;
-                
-                let html = '';
-                availableCoaches.forEach(coach => {
-                    html += `<div class="coach-option" onclick="selectCoach('${coach.username}', '${coach.name}')">
-                        <div class="coach-info">
-                            <div>
-                                <div class="coach-name">${coach.name}</div>
-                                <div class="coach-expertise">${coach.expertise}</div>
-                            </div>
-                            <div class="coach-rating">${coach.title}</div>
-                        </div>
-                    </div>`;
-                });
-                
-                coachesList.innerHTML = html;
+
                 document.getElementById('time-slot-modal').style.display = 'none';
+
+                // Populate the coach dropdown with the student's actual coaches from the API session
+                const coachDropdown = document.getElementById('coach-dropdown');
+                coachDropdown.innerHTML = '<option value="">Select a coach...</option>';
+                myCoaches.forEach(coach => {
+                    const name = (coach.profile && coach.profile.name) || coach.username;
+                    const title = (coach.profile && coach.profile.title) || 'Chess Coach';
+                    const rate = coach.hourlyRate ? ` · $${coach.hourlyRate}/hr` : '';
+                    const opt = document.createElement('option');
+                    opt.value = coach._id;
+                    opt.textContent = `${name} — ${title}${rate}`;
+                    opt.setAttribute('data-coach', JSON.stringify({
+                        id: coach._id,
+                        username: coach.username,
+                        name,
+                        title,
+                        expertise: (coach.expertise && coach.expertise.join(', ')) || 'General Training',
+                        hourlyRate: coach.hourlyRate || 50
+                    }));
+                    coachDropdown.appendChild(opt);
+                });
+
+                document.getElementById('selected-time-display').textContent = `${day} at ${time}`;
+                document.getElementById('coach-info-display').style.display = 'none';
                 document.getElementById('coach-selection-modal').style.display = 'block';
             };
 
-            // Select coach and show booking confirmation
-            window.selectCoach = function(coachUsername, coachName) {
-                window.selectedCoachUsername = coachUsername;
-                window.selectedCoachName = coachName;
-                
-                // Show booking confirmation modal
-                const modal = document.getElementById('booking-modal');
-                document.getElementById('booking-time-display').textContent = `${window.selectedDay} at ${window.selectedTime}`;
-                document.getElementById('booking-coach-display').textContent = `Coach: ${coachName}`;
-                modal.style.display = 'block';
-                
-                // Hide coach selection modal
-                document.getElementById('coach-selection-modal').style.display = 'none';
-            };
-
-            // Select time slot from main schedule and show coach selection
-            window.selectTimeSlotFromSchedule = function(day, time) {
-                console.log('selectTimeSlotFromSchedule called with:', day, time);
-                alert(`Time slot clicked: ${day} at ${time}`);
-                window.selectedDay = day;
-                window.selectedTime = time;
-                
-                // Find available coaches for this time slot
-                const availableCoaches = findAvailableCoaches(day, time);
-                console.log('Available coaches found:', availableCoaches);
-                console.log('Number of available coaches:', availableCoaches.length);
-                
-                if (availableCoaches.length === 0) {
-                    alert('No coaches available at this time. Please try another time slot.');
-                    return;
-                }
-                
-                // Populate coach dropdown
-                const coachDropdown = document.getElementById('coach-dropdown');
-                console.log('Coach dropdown element:', coachDropdown);
-                
-                // Clear existing options
-                coachDropdown.innerHTML = '<option value="">Select a coach...</option>';
-                
-                // Add coach options to dropdown
-                availableCoaches.forEach(coach => {
-                    const option = document.createElement('option');
-                    option.value = coach.username;
-                    option.textContent = `${coach.name} - ${coach.title} (${coach.rating})`;
-                    option.setAttribute('data-coach', JSON.stringify(coach));
-                    coachDropdown.appendChild(option);
-                });
-                
-                // Add "Select All" option if multiple coaches
-                if (availableCoaches.length > 1) {
-                    const selectAllOption = document.createElement('option');
-                    selectAllOption.value = 'select-all';
-                    selectAllOption.textContent = `Select All Coaches (${availableCoaches.length} available)`;
-                    coachDropdown.appendChild(selectAllOption);
-                }
-                
-                console.log('Populated dropdown with', availableCoaches.length, 'coaches');
-                
-                // Update modal title with selected time
-                const selectedTimeDisplay = document.getElementById('selected-time-display');
-                if (selectedTimeDisplay) {
-                    selectedTimeDisplay.textContent = `${day} at ${time}`;
-                }
-                
-                // Show coach selection modal
-                const modal = document.getElementById('coach-selection-modal');
-                console.log('Coach selection modal element:', modal);
-                if (modal) {
-                    // Force the modal to be visible with inline styles
-                    modal.style.position = 'fixed';
-                    modal.style.top = '0';
-                    modal.style.left = '0';
-                    modal.style.width = '100%';
-                    modal.style.height = '100%';
-                    modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-                    modal.style.zIndex = '1000';
-                    modal.style.display = 'block';
-                    
-                    console.log('Modal display style set to:', modal.style.display);
-                    console.log('Modal computed style:', window.getComputedStyle(modal).display);
-                } else {
-                    console.error('Coach selection modal not found!');
-                }
-            };
-
-            // Select coach for lesson and create request
-            window.selectCoachForLesson = function(coachUsername, coachName) {
-                console.log('selectCoachForLesson called with:', coachUsername, coachName);
-                
-                // Hide coach selection modal
-                const modal = document.getElementById('coach-selection-modal');
-                if (modal) {
-                    modal.style.display = 'none';
-                }
-                
-                // Create lesson request for the selected coach
-                const weekKey = getWeekKey(getSelectedWeekDate());
-                const scheduleKey = `scheduleData_${coachUsername}_${weekKey}`;
-                let scheduleData = loadSchedule(coachUsername, getSelectedWeekDate());
-                
-                    // If coach doesn't have a schedule, create one with 30-minute slots
-                    if (!scheduleData.weeklySchedule) {
-                        const slots = [];
-                        for (let hour = 9; hour < 17; hour++) {
-                            for (let minute = 0; minute < 60; minute += 30) {
-                                const time = new Date(2000, 0, 1, hour, minute);
-                                const timeString = time.toLocaleTimeString('en-US', { 
-                                    hour: 'numeric', 
-                                    minute: '2-digit',
-                                    hour12: true 
-                                });
-                                slots.push({ time: timeString, status: 'available' });
-                            }
-                        }
-                        scheduleData = {
-                            students: {},
-                            weeklySchedule: {
-                                'Monday': JSON.parse(JSON.stringify(slots)),
-                                'Tuesday': JSON.parse(JSON.stringify(slots)),
-                                'Wednesday': JSON.parse(JSON.stringify(slots)),
-                                'Thursday': JSON.parse(JSON.stringify(slots)),
-                                'Friday': JSON.parse(JSON.stringify(slots))
-                            }
-                        };
-                    }
-                
-                if (scheduleData.weeklySchedule && scheduleData.weeklySchedule[window.selectedDay]) {
-                    // Find the appropriate slot (either exact match or overlapping)
-                    let slot = scheduleData.weeklySchedule[window.selectedDay].find(s => s.time === window.selectedTime);
-                    
-                    // If no exact match, find overlapping slot (30-minute slots)
-                    if (!slot) {
-                        slot = scheduleData.weeklySchedule[window.selectedDay].find(s => {
-                            const requestTime = convertTimeToMinutes(window.selectedTime);
-                            const slotTime = convertTimeToMinutes(s.time);
-                            return requestTime >= slotTime && requestTime < slotTime + 30;
-                        });
-                    }
-                    
-                    if (slot && slot.status === 'available') {
-                        slot.status = 'pending';
-                        slot.student = studentName;
-                        localStorage.setItem(scheduleKey, JSON.stringify(scheduleData));
-                        
-                        alert(`Lesson request sent for ${window.selectedDay} at ${window.selectedTime} with ${coachName}. Awaiting coach approval.`);
-                        renderAvailableSlots(); // Refresh the display
-                    } else {
-                        alert('This time slot is no longer available. Please select another time.');
-                    }
-                } else {
-                    alert('Unable to create lesson request. Please try again.');
-                }
-            };
-
-            // Select all coaches for lesson and create requests
-            window.selectAllCoachesForLesson = function() {
-                console.log('selectAllCoachesForLesson called');
-                
-                // Hide coach selection modal
-                const modal = document.getElementById('coach-selection-modal');
-                if (modal) {
-                    modal.style.display = 'none';
-                }
-                
-                // Get available coaches for the selected time
-                const availableCoaches = findAvailableCoaches(window.selectedDay, window.selectedTime);
-                let requestsCreated = 0;
-                
-                availableCoaches.forEach(coach => {
-                    const weekKey = getWeekKey(getSelectedWeekDate());
-                    const scheduleKey = `scheduleData_${coach.username}_${weekKey}`;
-                    let scheduleData = loadSchedule(coach.username, getSelectedWeekDate());
-                    
-                    // If coach doesn't have a schedule, create one with 30-minute slots
-                    if (!scheduleData.weeklySchedule) {
-                        const slots = [];
-                        for (let hour = 9; hour < 17; hour++) {
-                            for (let minute = 0; minute < 60; minute += 30) {
-                                const time = new Date(2000, 0, 1, hour, minute);
-                                const timeString = time.toLocaleTimeString('en-US', { 
-                                    hour: 'numeric', 
-                                    minute: '2-digit',
-                                    hour12: true 
-                                });
-                                slots.push({ time: timeString, status: 'available' });
-                            }
-                        }
-                        scheduleData = {
-                            students: {},
-                            weeklySchedule: {
-                                'Monday': JSON.parse(JSON.stringify(slots)),
-                                'Tuesday': JSON.parse(JSON.stringify(slots)),
-                                'Wednesday': JSON.parse(JSON.stringify(slots)),
-                                'Thursday': JSON.parse(JSON.stringify(slots)),
-                                'Friday': JSON.parse(JSON.stringify(slots))
-                            }
-                        };
-                    }
-                    
-                    if (scheduleData.weeklySchedule && scheduleData.weeklySchedule[window.selectedDay]) {
-                        // Find the appropriate slot (either exact match or overlapping)
-                        let slot = scheduleData.weeklySchedule[window.selectedDay].find(s => s.time === window.selectedTime);
-                        
-                        // If no exact match, find overlapping slot (30-minute slots)
-                        if (!slot) {
-                            slot = scheduleData.weeklySchedule[window.selectedDay].find(s => {
-                                const requestTime = convertTimeToMinutes(window.selectedTime);
-                                const slotTime = convertTimeToMinutes(s.time);
-                                return requestTime >= slotTime && requestTime < slotTime + 30;
-                            });
-                        }
-                        
-                        if (slot && slot.status === 'available') {
-                            slot.status = 'pending';
-                            slot.student = studentName;
-                            localStorage.setItem(scheduleKey, JSON.stringify(scheduleData));
-                            requestsCreated++;
-                        }
-                    }
-                });
-                
-                if (requestsCreated > 0) {
-                    alert(`Lesson requests sent for ${window.selectedDay} at ${window.selectedTime} with ${requestsCreated} coach${requestsCreated > 1 ? 'es' : ''}. First coach to accept gets the lesson.`);
-                    renderAvailableSlots(); // Refresh the display
-                } else {
-                    alert('Unable to create lesson requests. Please try again.');
-                }
-            };
-
-            // Test function to check if coach selection modal works
-            window.testCoachSelection = function() {
-                console.log('Test coach selection called');
-                
-                // Create some test coaches
-                const testCoaches = [
-                    {
-                        username: 'testcoach1',
-                        name: 'Test Coach 1',
-                        title: 'FIDE Master',
-                        expertise: 'Opening Preparation'
-                    },
-                    {
-                        username: 'testcoach2',
-                        name: 'Test Coach 2',
-                        title: 'National Master',
-                        expertise: 'Endgame Technique'
-                    }
-                ];
-                
-                // Populate coach dropdown with test data
-                const coachDropdown = document.getElementById('coach-dropdown');
-                console.log('Coach dropdown element:', coachDropdown);
-                
-                // Clear existing options
-                coachDropdown.innerHTML = '<option value="">Select a coach...</option>';
-                
-                // Add coach options to dropdown
-                testCoaches.forEach(coach => {
-                    const option = document.createElement('option');
-                    option.value = coach.username;
-                    option.textContent = `${coach.name} - ${coach.title}`;
-                    option.setAttribute('data-coach', JSON.stringify(coach));
-                    coachDropdown.appendChild(option);
-                });
-                
-                // Add "Select All" option
-                const selectAllOption = document.createElement('option');
-                selectAllOption.value = 'select-all';
-                selectAllOption.textContent = `Select All Coaches (${testCoaches.length} available)`;
-                coachDropdown.appendChild(selectAllOption);
-                
-                console.log('Populated dropdown with test coaches');
-                
-                // Update modal title
-                const selectedTimeDisplay = document.getElementById('selected-time-display');
-                if (selectedTimeDisplay) {
-                    selectedTimeDisplay.textContent = 'Test Time Slot';
-                }
-                
-                // Show coach selection modal
-                const modal = document.getElementById('coach-selection-modal');
-                console.log('Coach selection modal element:', modal);
-                if (modal) {
-                    modal.style.display = 'block';
-                    console.log('Test modal should now be visible');
-                    
-                    // Force the modal to be visible with inline styles
-                    modal.style.position = 'fixed';
-                    modal.style.top = '0';
-                    modal.style.left = '0';
-                    modal.style.width = '100%';
-                    modal.style.height = '100%';
-                    modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-                    modal.style.zIndex = '1000';
-                    modal.style.display = 'block';
-                    
-                    console.log('Modal display style set to:', modal.style.display);
-                    console.log('Modal computed style:', window.getComputedStyle(modal).display);
-                } else {
-                    console.error('Coach selection modal not found!');
-                }
-            };
-
-            // Make showModal function global (for backward compatibility)
-            window.showModal = function(day, time) {
-                const modal = document.getElementById('booking-modal');
-                document.getElementById('booking-time-display').textContent = `${day} at ${time}`;
-                window.selectedDay = day;
-                window.selectedTime = time;
-                modal.style.display = 'block';
-            };
 
         document.addEventListener('DOMContentLoaded', function() {
             // Check if user is logged in as student
@@ -958,38 +504,56 @@
 
             // Get student info from session
             studentName = (currentUser.profile && currentUser.profile.name) || username;
-            const studentRating = (currentUser.profile && currentUser.profile.rating) || 1200;
 
-            // Get coach info from the populated coach field returned by login
-            const coachObj = currentUser.coach;
-            if (coachObj) {
-                studentCoach = (coachObj.profile && coachObj.profile.name) || coachObj.username;
-                coachUsername = coachObj.username;
+            // All coaches this student is working with (populated array from login API)
+            const myCoaches = Array.isArray(currentUser.coaches) ? currentUser.coaches : [];
+            if (myCoaches.length > 0) {
+                studentCoach = (myCoaches[0].profile && myCoaches[0].profile.name) || myCoaches[0].username;
+                coachUsername = myCoaches[0].username;
             } else {
                 studentCoach = 'No coach assigned';
                 coachUsername = null;
             }
 
-            // Resolve coach username by name — checks API coach first, then localStorage legacy data
+            // Resolve a coach username by name — checks API coaches first, then localStorage legacy data
             function getCoachUsername(coachName) {
-                if (coachObj && (coachObj.username === coachName ||
-                    (coachObj.profile && coachObj.profile.name === coachName))) {
-                    return coachObj.username;
-                }
+                const match = myCoaches.find(c =>
+                    c.username === coachName || (c.profile && c.profile.name === coachName));
+                if (match) return match.username;
                 const keys = Object.keys(localStorage);
                 for (const key of keys.filter(k => k.startsWith('userData_'))) {
-                    const user = JSON.parse(localStorage.getItem(key));
-                    if (user && user.userType === 'coach' &&
-                        (user.name === coachName || user.username === coachName)) {
-                        return user.username;
-                    }
+                    const u = JSON.parse(localStorage.getItem(key));
+                    if (u && u.userType === 'coach' && (u.name === coachName || u.username === coachName))
+                        return u.username;
                 }
                 return null;
             }
 
+            // Helper: convert "Monday" + current week offset → "YYYY-MM-DD"
+            function getDateForDay(dayName) {
+                const idx = ['Monday','Tuesday','Wednesday','Thursday','Friday'].indexOf(dayName);
+                if (idx < 0) return null;
+                const d = new Date(getSelectedWeekDate());
+                d.setDate(d.getDate() + idx);
+                return d.toISOString().slice(0, 10);
+            }
+
+            // Helper: convert "9:00 AM" → "09:00"
+            function to24Hour(time12h) {
+                const m = time12h.match(/(\d+):(\d+)\s*(AM|PM)/i);
+                if (!m) return '09:00';
+                let h = parseInt(m[1]), min = parseInt(m[2]), p = m[3].toUpperCase();
+                if (p === 'PM' && h !== 12) h += 12;
+                if (p === 'AM' && h === 12) h = 0;
+                return `${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}`;
+            }
+
             // Set student information
             document.getElementById('student-name').textContent = studentName;
-            document.getElementById('coach-name').textContent = studentCoach;
+            document.getElementById('coach-name').textContent =
+                myCoaches.length > 0
+                    ? myCoaches.map(c => (c.profile && c.profile.name) || c.username).join(', ')
+                    : 'No coach assigned';
 
             // --- Notification Display ---
             function renderNotifications() {
@@ -1127,25 +691,40 @@
                 }
             });
             
-            // Confirm coach selection button
-            document.getElementById('confirm-coach-selection').addEventListener('click', function() {
-                const selectedValue = document.getElementById('coach-dropdown').value;
-                
-                if (!selectedValue) {
+            // Confirm coach selection → send lesson request via API
+            document.getElementById('confirm-coach-selection').addEventListener('click', async function() {
+                const coachDropdown = document.getElementById('coach-dropdown');
+                const coachId = coachDropdown.value;
+
+                if (!coachId) {
                     alert('Please select a coach first.');
                     return;
                 }
-                
-                if (selectedValue === 'select-all') {
-                    // Call the select all function
-                    selectAllCoachesForLesson();
-                } else {
-                    // Get the selected coach data
-                    const selectedOption = document.getElementById('coach-dropdown').options[document.getElementById('coach-dropdown').selectedIndex];
-                    const coachData = JSON.parse(selectedOption.getAttribute('data-coach'));
-                    
-                    // Call the single coach selection function
-                    selectCoachForLesson(coachData.username, coachData.name);
+
+                const btn = this;
+                btn.disabled = true;
+                btn.textContent = 'Sending...';
+
+                try {
+                    const date = getDateForDay(window.selectedDay);
+                    const time = to24Hour(window.selectedTime);
+
+                    await Api.requestLesson({
+                        coachId,
+                        date,
+                        time,
+                        duration: 60,
+                        topic: 'Chess coaching session'
+                    });
+
+                    document.getElementById('coach-selection-modal').style.display = 'none';
+                    alert(`Lesson request sent for ${window.selectedDay} at ${window.selectedTime}. Waiting for coach approval.`);
+                    renderAvailableSlots();
+                } catch (err) {
+                    alert('Error: ' + (err.message || 'Could not send lesson request. Please try again.'));
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = 'Book Lesson';
                 }
             });
             
@@ -1192,383 +771,103 @@
                 return false;
             }
 
-            // Function to render available slots
-            function renderAvailableSlots() {
-                // Get all coach usernames for this student
-                const studentData = JSON.parse(localStorage.getItem('studentData') || '{}');
-                const userData = JSON.parse(localStorage.getItem('userData_' + username) || '{}');
-                let studentCoaches = studentData.coaches || userData.coaches || [];
-                if (!Array.isArray(studentCoaches)) {
-                    studentCoaches = [studentData.coach || userData.coach || 'Available Coach'];
-                }
-                let studentCoachUsernames = userData.coachUsernames || [];
-                if (!Array.isArray(studentCoachUsernames)) {
-                    studentCoachUsernames = [];
-                }
-                
-                // Get all coach usernames (from array or derive from coach names)
-                const allCoachUsernames = [];
-                // First, add usernames from the stored array
-                if (studentCoachUsernames.length > 0) {
-                    studentCoachUsernames.forEach(user => {
-                        if (user && !allCoachUsernames.includes(user)) {
-                            allCoachUsernames.push(user);
-                        }
-                    });
-                }
-                // Also derive usernames from coach names (in case some are missing from array)
-                studentCoaches.forEach(coachName => {
-                    const coachUser = getCoachUsername(coachName);
-                    if (coachUser && !allCoachUsernames.includes(coachUser)) {
-                        allCoachUsernames.push(coachUser);
-                    }
-                });
-                
-                // If no coaches found, use the primary coach
-                if (allCoachUsernames.length === 0 && coachUsername) {
-                    allCoachUsernames.push(coachUsername);
-                }
-                
-                // Fallback: Also check all coach schedules in localStorage to find any lessons for this student
-                // This ensures we don't miss lessons if coach usernames aren't properly stored
-                if (allCoachUsernames.length === 0 || allCoachUsernames.length < studentCoaches.length) {
-                    const keys = Object.keys(localStorage);
-                    const scheduleKeys = keys.filter(key => key.startsWith('scheduleData_'));
-                    scheduleKeys.forEach(scheduleKey => {
-                        // Extract coach username from schedule key: scheduleData_{coachUsername}_{weekKey}
-                        const parts = scheduleKey.split('_');
-                        if (parts.length >= 3) {
-                            const potentialCoachUser = parts[1]; // coachUsername is between scheduleData and weekKey
-                            // Check if this is a coach's schedule
-                            const coachUserData = JSON.parse(localStorage.getItem('userData_' + potentialCoachUser) || '{}');
-                            if (coachUserData && coachUserData.userType === 'coach' && !allCoachUsernames.includes(potentialCoachUser)) {
-                                // Check if this coach has any lessons for this student
-                                const schedule = JSON.parse(localStorage.getItem(scheduleKey) || '{}');
-                                if (schedule && schedule.weeklySchedule) {
-                                    let hasStudentLesson = false;
-                                    Object.values(schedule.weeklySchedule).forEach(slots => {
-                                        if (Array.isArray(slots)) {
-                                            slots.forEach(slot => {
-                                                if ((slot.status === 'pending' || slot.status === 'booked') && 
-                                                    slot.student && (
-                                                        slot.student === studentName || 
-                                                        slot.student === username ||
-                                                        slot.student === userData.name ||
-                                                        slot.student === studentData.name
-                                                    )) {
-                                                    hasStudentLesson = true;
-                                                }
-                                            });
-                                        }
-                                    });
-                                    if (hasStudentLesson) {
-                                        allCoachUsernames.push(potentialCoachUser);
-                                    }
-                                }
-                            }
-                        }
-                    });
-                }
-                
-                // Load schedule from primary coach for available slots display
-                const scheduleData = loadSchedule(coachUsername, getSelectedWeekDate());
+            // Fetch lessons from API and render upcoming/pending in the dashboard
+            async function renderAvailableSlots() {
                 const slotsContainer = document.getElementById('available-slots');
                 const upcomingContainer = document.getElementById('upcoming-lessons');
-                let upcomingHTML = '';
-                let availableHTML = '<div class="lesson-grid">';
-                
-                // Collect all lessons from all coaches
-                // IMPORTANT: Search ALL coach schedules, not just the ones in student's list
-                // This ensures we find lessons even if coach usernames aren't properly stored
-                const allLessons = [];
-                const weekDate = getSelectedWeekDate();
-                const weekKey = getWeekKey(weekDate);
-                
-                // First, check schedules from known coaches
-                allCoachUsernames.forEach(coachUser => {
-                    if (!coachUser) return; // Skip if coach username is null/undefined
-                    
-                    const coachSchedule = loadSchedule(coachUser, weekDate);
-                    // Get coach name for display
-                    let coachDisplayName = studentCoaches.find(name => {
-                        const user = getCoachUsername(name);
-                        return user === coachUser;
-                    }) || coachUser;
-                    
-                    // Try to get coach name from userData
-                    if (!coachDisplayName || coachDisplayName === coachUser) {
-                        const keys = Object.keys(localStorage);
-                        const userKeys = keys.filter(key => key.startsWith('userData_'));
-                        for (const key of userKeys) {
-                            const user = JSON.parse(localStorage.getItem(key));
-                            if (user && user.username === coachUser) {
-                                coachDisplayName = user.name || user.username;
-                                break;
+                slotsContainer.innerHTML = '';
+                upcomingContainer.innerHTML = '<p style="color:#888;">Loading lessons…</p>';
+                try {
+                    const lessons = await Api.getLessons();
+                    const now = new Date();
+                    const upcoming = lessons.filter(l =>
+                        (l.status === 'pending' || l.status === 'scheduled') &&
+                        new Date(l.dateTime) >= now
+                    );
+                    upcoming.sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
+                    if (upcoming.length === 0) {
+                        upcomingContainer.innerHTML = '<p>No upcoming lessons scheduled. Use "Select Time Slot" to request one.</p>';
+                    } else {
+                        upcomingContainer.innerHTML = upcoming.map(lesson => {
+                            const dt = new Date(lesson.dateTime);
+                            const dateStr = dt.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+                            const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                            const coachName = (lesson.coach && (lesson.coach.profile?.name || lesson.coach.username)) || 'Coach';
+                            if (lesson.status === 'pending') {
+                                return `<div class="time-slot booked" style="background-color:#fff3cd;border-color:#ffeaa7;">
+                                    <strong>${dateStr} at ${timeStr}</strong><br>Pending Approval with ${coachName}
+                                </div>`;
+                            } else {
+                                return `<div class="time-slot booked">
+                                    <strong>${dateStr} at ${timeStr}</strong><br>Confirmed Lesson with ${coachName}
+                                </div>`;
                             }
-                        }
+                        }).join('');
                     }
-                    
-                    if (coachSchedule && coachSchedule.weeklySchedule) {
-                        Object.entries(coachSchedule.weeklySchedule).forEach(([day, slots]) => {
-                            slots.forEach(slot => {
-                                // Check if this slot belongs to the current student
-                                const slotStudent = slot.student;
-                                const isStudentSlot = (slot.status === 'pending' || slot.status === 'booked') && 
-                                    slotStudent && (
-                                        slotStudent === studentName || 
-                                        slotStudent === username || 
-                                        slotStudent === userData.name || 
-                                        slotStudent === studentData.name ||
-                                        slotStudent.toLowerCase() === studentName.toLowerCase() ||
-                                        slotStudent.toLowerCase() === username.toLowerCase()
-                                    );
-                                
-                                if (isStudentSlot) {
-                                    // Use coach name from slot if available, otherwise use derived name
-                                    const lessonCoachName = slot.coach || coachDisplayName;
-                                    allLessons.push({
-                                        day: day,
-                                        time: slot.time,
-                                        status: slot.status,
-                                        coach: lessonCoachName,
-                                        coachUsername: coachUser
-                                    });
-                                }
-                            });
-                        });
-                    }
-                });
-                
-                // CRITICAL FIX: Also search ALL coach schedules in localStorage for this week
-                // This catches lessons from coaches not in the student's list
-                const keys = Object.keys(localStorage);
-                const scheduleKeys = keys.filter(key => {
-                    // Match schedule keys for the current week: scheduleData_{coachUsername}_{weekKey}
-                    return key.startsWith('scheduleData_') && key.endsWith('_' + weekKey);
-                });
-                
-                scheduleKeys.forEach(scheduleKey => {
-                    // Extract coach username from schedule key
-                    const parts = scheduleKey.split('_');
-                    if (parts.length >= 3) {
-                        const coachUser = parts[1]; // coachUsername is between scheduleData and weekKey
-                        
-                        // Skip if we already checked this coach
-                        if (allCoachUsernames.includes(coachUser)) {
-                            return;
-                        }
-                        
-                        // Verify this is a coach's schedule
-                        const coachUserData = JSON.parse(localStorage.getItem('userData_' + coachUser) || '{}');
-                        if (!coachUserData || coachUserData.userType !== 'coach') {
-                            return;
-                        }
-                        
-                        const coachSchedule = JSON.parse(localStorage.getItem(scheduleKey) || '{}');
-                        const coachDisplayName = coachUserData.name || coachUser;
-                        
-                        if (coachSchedule && coachSchedule.weeklySchedule) {
-                            Object.entries(coachSchedule.weeklySchedule).forEach(([day, slots]) => {
-                                slots.forEach(slot => {
-                                    const slotStudent = slot.student;
-                                    const isStudentSlot = (slot.status === 'pending' || slot.status === 'booked') && 
-                                        slotStudent && (
-                                            slotStudent === studentName || 
-                                            slotStudent === username || 
-                                            slotStudent === userData.name || 
-                                            slotStudent === studentData.name ||
-                                            slotStudent.toLowerCase() === studentName.toLowerCase() ||
-                                            slotStudent.toLowerCase() === username.toLowerCase()
-                                        );
-                                    
-                                    if (isStudentSlot) {
-                                        const lessonCoachName = slot.coach || coachDisplayName;
-                                        allLessons.push({
-                                            day: day,
-                                            time: slot.time,
-                                            status: slot.status,
-                                            coach: lessonCoachName,
-                                            coachUsername: coachUser
-                                        });
-                                    }
-                                });
-                            });
-                        }
-                    }
-                });
-                
-                // Sort lessons by day and time
-                const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-                allLessons.sort((a, b) => {
-                    const dayDiff = dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day);
-                    if (dayDiff !== 0) return dayDiff;
-                    return convertTimeToMinutes(a.time) - convertTimeToMinutes(b.time);
-                });
-                
-                // Display all lessons in upcoming section
-                allLessons.forEach(lesson => {
-                    if (lesson.status === 'pending') {
-                        upcomingHTML += `
-                            <div class="time-slot booked" style="background-color: #fff3cd; border-color: #ffeaa7;">
-                                <strong>${lesson.day} at ${lesson.time}</strong><br>
-                                Pending Approval with ${lesson.coach}
-                            </div>
-                        `;
-                    } else if (lesson.status === 'booked') {
-                        upcomingHTML += `
-                            <div class="time-slot booked">
-                                <strong>${lesson.day} at ${lesson.time}</strong><br>
-                                Lesson with ${lesson.coach}
-                            </div>
-                        `;
-                    }
-                });
-                
-                // Render available slots from primary coach schedule
-                if (scheduleData.weeklySchedule) {
-                    Object.entries(scheduleData.weeklySchedule).forEach(([day, slots]) => {
-                        if (day !== 'Saturday' && day !== 'Sunday') {
-                            availableHTML += `<div class="day-column"><h3>${day}</h3>`;
-                            slots.forEach(slot => {
-                                const isPast = isTimeSlotPast(day, slot.time);
-                                // Check if this slot is already booked by this student with any coach
-                                const isBookedByStudent = allLessons.some(lesson => 
-                                    lesson.day === day && 
-                                    lesson.time === slot.time && 
-                                    lesson.status === 'booked'
-                                );
-                                const isPendingByStudent = allLessons.some(lesson => 
-                                    lesson.day === day && 
-                                    lesson.time === slot.time && 
-                                    lesson.status === 'pending'
-                                );
-                                
-                                if (slot.status === 'available' && !isPast && !isBookedByStudent && !isPendingByStudent) {
-                                    availableHTML += `
-                                        <div class="time-slot available" onclick="console.log('Click detected for ${day} at ${slot.time}!'); selectTimeSlotFromSchedule('${day}', '${slot.time}')">
-                                            <strong>${slot.time}</strong><br>Available
-                                        </div>
-                                    `;
-                                } else if (isPendingByStudent) {
-                                    // Don't show in calendar if pending
-                                } else if (isBookedByStudent) {
-                                    // Don't show in calendar if booked
-                                } else if (slot.status === 'pending' && slot.student !== studentName) {
-                                    availableHTML += `
-                                        <div class="time-slot unavailable">
-                                            <strong>${slot.time}</strong><br>Pending
-                                        </div>
-                                    `;
-                                } else if (isPast) {
-                                    availableHTML += `
-                                        <div class="time-slot unavailable">
-                                            <strong>${slot.time}</strong><br>Past
-                                        </div>
-                                    `;
-                                } else if (slot.status === 'booked' && slot.student !== studentName) {
-                                    availableHTML += `
-                                        <div class="time-slot unavailable">
-                                            <strong>${slot.time}</strong><br>Booked
-                                        </div>
-                                    `;
-                                }
-                            });
-                            availableHTML += '</div>';
-                        }
-                    });
+                    slotsContainer.innerHTML = '<p style="color:#666;">Use the "Select Time Slot" button to request a lesson at any time.</p>';
+                } catch (err) {
+                    upcomingContainer.innerHTML = '<p style="color:red;">Could not load lessons. Please refresh the page.</p>';
                 }
-                availableHTML += '</div>';
-                slotsContainer.innerHTML = availableHTML;
-                upcomingContainer.innerHTML = upcomingHTML || '<p>No upcoming lessons scheduled</p>';
             }
 
-            // Handle booking confirmation
-            document.getElementById('confirm-booking').addEventListener('click', function() {
-                // Use the selected coach if available, otherwise fall back to primary coach
-                const selectedCoachUsername = window.selectedCoachUsername || coachUsername;
-                const key = getScheduleKeyForWeek(selectedCoachUsername, getSelectedWeekDate());
-                let scheduleData = loadSchedule(selectedCoachUsername, getSelectedWeekDate());
-                
-                if (scheduleData.weeklySchedule && scheduleData.weeklySchedule[window.selectedDay]) {
-                    const slot = scheduleData.weeklySchedule[window.selectedDay].find(s => s.time === window.selectedTime);
-                    if (slot && slot.status === 'available') {
-                        slot.status = 'pending';
-                        slot.student = studentName;
-                        localStorage.setItem(key, JSON.stringify(scheduleData));
-                        renderAvailableSlots();
-                        hideModal();
-                        alert(`Lesson request sent for ${window.selectedDay} at ${window.selectedTime} with ${window.selectedCoachName || 'your coach'}. Awaiting coach approval.`);
-                    } else {
-                        alert('This time slot is no longer available. Please select another time.');
-                    }
-                } else {
-                    alert('Unable to book this time slot. Please try again.');
-                }
-            });
-
-            // Add Join More Coaches button logic
+            // Join More Coaches — load from API and let student add new coaches
             const joinMoreCoachesBtn = document.getElementById('join-more-coaches');
             const joinCoachesModal = document.getElementById('join-coaches-modal');
             const closeJoinCoaches = document.getElementById('close-join-coaches');
             const cancelJoinCoaches = document.getElementById('cancel-join-coaches');
             const confirmJoinCoaches = document.getElementById('confirm-join-coaches');
             const availableCoachesList = document.getElementById('available-coaches-list');
-            joinMoreCoachesBtn.onclick = function() {
-                // List all available coaches except those already joined (by name or username)
-                const keys = Object.keys(localStorage);
-                const userKeys = keys.filter(key => key.startsWith('userData_'));
-                let coachOptions = [];
-                // Get both names and usernames for filtering
-                let allCoachNames = studentCoaches.slice();
-                let allCoachUsernames = (userData.coachUsernames || []);
-                if (!Array.isArray(allCoachUsernames)) allCoachUsernames = [];
-                userKeys.forEach(key => {
-                    const user = JSON.parse(localStorage.getItem(key));
-                    if (user && user.userType === 'coach') {
-                        // Exclude if already joined by name or username
-                        if (!allCoachNames.includes(user.name) && !allCoachUsernames.includes(user.username)) {
-                            coachOptions.push(user);
-                        }
-                    }
-                });
-                if (coachOptions.length === 0) {
-                    availableCoachesList.innerHTML = '<p>No more coaches available to join.</p>';
-                } else {
-                    availableCoachesList.innerHTML = coachOptions.map((coach, idx) => `
-                        <label style="display:block;margin-bottom:0.5rem;">
-                            <input type="checkbox" class="join-coach-checkbox" value="${coach.name}" data-username="${coach.username}">
-                            <strong>${coach.name}</strong> (${coach.title || 'Coach'})
-                        </label>
-                    `).join('');
-                }
+            joinMoreCoachesBtn.onclick = async function() {
+                availableCoachesList.innerHTML = '<p>Loading coaches…</p>';
                 joinCoachesModal.style.display = 'block';
+                try {
+                    const allCoaches = await Api.getCoaches();
+                    const myCoachIds = new Set(myCoaches.map(c => String(c._id || c.id)));
+                    const joinable = allCoaches.filter(c => !myCoachIds.has(String(c._id || c.id)));
+                    if (joinable.length === 0) {
+                        availableCoachesList.innerHTML = '<p>No more coaches available to join.</p>';
+                    } else {
+                        availableCoachesList.innerHTML = joinable.map(coach => {
+                            const name = (coach.profile && coach.profile.name) || coach.username;
+                            const title = (coach.profile && coach.profile.title) || 'Chess Coach';
+                            const rate = coach.hourlyRate ? ` · $${coach.hourlyRate}/hr` : '';
+                            return `<label style="display:block;margin-bottom:0.5rem;">
+                                <input type="checkbox" class="join-coach-checkbox" value="${coach._id}">
+                                <strong>${name}</strong> — ${title}${rate}
+                            </label>`;
+                        }).join('');
+                    }
+                } catch (err) {
+                    availableCoachesList.innerHTML = '<p style="color:red;">Could not load coaches. Please try again.</p>';
+                }
             };
             closeJoinCoaches.onclick = cancelJoinCoaches.onclick = function() {
                 joinCoachesModal.style.display = 'none';
             };
-            confirmJoinCoaches.onclick = function() {
+            confirmJoinCoaches.onclick = async function() {
                 const checkboxes = document.querySelectorAll('.join-coach-checkbox:checked');
-                // Add both coach name and username to the joined list
-                let newCoaches = Array.from(checkboxes).map(cb => ({ name: cb.value, username: cb.getAttribute('data-username') }));
-                if (newCoaches.length === 0) {
+                const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+                if (selectedIds.length === 0) {
                     alert('Please select at least one coach to join.');
                     return;
                 }
-                // Merge both names and usernames into the coaches array, avoiding duplicates
-                let allCoachNames = studentCoaches.slice();
-                let allCoachUsernames = (userData.coachUsernames || []);
-                if (!Array.isArray(allCoachUsernames)) allCoachUsernames = [];
-                newCoaches.forEach(coach => {
-                    if (!allCoachNames.includes(coach.name)) allCoachNames.push(coach.name);
-                    if (!allCoachUsernames.includes(coach.username)) allCoachUsernames.push(coach.username);
-                });
-                // Save to localStorage
-                let updatedStudentData = Object.assign({}, studentData, { coaches: allCoachNames, coachUsernames: allCoachUsernames });
-                localStorage.setItem('studentData', JSON.stringify(updatedStudentData));
-                localStorage.setItem('userData_' + username, JSON.stringify(Object.assign({}, userData, { coaches: allCoachNames, coachUsernames: allCoachUsernames })));
-                joinCoachesModal.style.display = 'none';
-                alert('You have joined new coach(es)!');
-                location.reload();
+                confirmJoinCoaches.disabled = true;
+                confirmJoinCoaches.textContent = 'Joining…';
+                try {
+                    for (const coachId of selectedIds) {
+                        await Api.addCoach(coachId);
+                    }
+                    const freshUser = await Api.me();
+                    Api.setSession(Api.getToken(), freshUser);
+                    joinCoachesModal.style.display = 'none';
+                    alert('You have joined new coach(es)! Refreshing…');
+                    location.reload();
+                } catch (err) {
+                    alert('Error: ' + (err.message || 'Could not join coach. Please try again.'));
+                } finally {
+                    confirmJoinCoaches.disabled = false;
+                    confirmJoinCoaches.textContent = 'Join Selected Coaches';
+                }
             };
             window.onclick = function(event) {
                 if (event.target === joinCoachesModal) {

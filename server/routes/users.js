@@ -9,10 +9,11 @@ router.get('/coaches', async (req, res) => {
             .select('-password -createdAt')
             .lean();
 
-        // Count students per coach in one aggregation query
+        // Count students per coach — unwind the coaches array to group by each coach ID
         const studentCounts = await User.aggregate([
-            { $match: { role: 'student', coach: { $exists: true, $ne: null } } },
-            { $group: { _id: '$coach', count: { $sum: 1 } } }
+            { $match: { role: 'student', coaches: { $exists: true, $ne: [] } } },
+            { $unwind: '$coaches' },
+            { $group: { _id: '$coaches', count: { $sum: 1 } } }
         ]);
 
         const countMap = {};
@@ -29,12 +30,46 @@ router.get('/coaches', async (req, res) => {
     }
 });
 
+// Add a coach to the student's coaches array (student auth required)
+router.post('/add-coach', auth, async (req, res) => {
+    try {
+        if (req.user.role !== 'student') {
+            return res.status(403).json({ message: 'Only students can add coaches' });
+        }
+
+        const { coachId } = req.body;
+        if (!coachId) {
+            return res.status(400).json({ message: 'coachId is required' });
+        }
+
+        const coach = await User.findById(coachId);
+        if (!coach || coach.role !== 'coach') {
+            return res.status(404).json({ message: 'Coach not found' });
+        }
+
+        const student = await User.findById(req.user.userId);
+        if (student.coaches.some(id => id.toString() === coach._id.toString())) {
+            return res.status(400).json({ message: 'You are already working with this coach' });
+        }
+
+        student.coaches.push(coach._id);
+        await student.save();
+
+        // Return updated coaches list (populated)
+        const updated = await User.findById(req.user.userId)
+            .populate('coaches', 'username profile hourlyRate expertise');
+        res.json({ message: 'Coach added successfully', coaches: updated.coaches });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 // Get a single user by ID (auth required)
 router.get('/:id', auth, async (req, res) => {
     try {
         const user = await User.findById(req.params.id)
             .select('-password')
-            .populate('coach', 'username profile hourlyRate expertise');
+            .populate('coaches', 'username profile hourlyRate expertise');
         if (!user) return res.status(404).json({ message: 'User not found' });
         res.json(user);
     } catch (err) {

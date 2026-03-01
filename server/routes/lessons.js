@@ -108,15 +108,6 @@ router.post('/request', [auth, isStudent], async (req, res) => {
             return res.status(400).json({ message: 'Invalid date or time' });
         }
 
-        // Verify the slot is still available in the coach's schedule
-        const schedule = await Schedule.findOne({
-            coach: coachId,
-            slots: { $elemMatch: { date, time: time.slice(0, 5), status: 'available' } }
-        });
-        if (!schedule) {
-            return res.status(409).json({ message: 'That time slot is no longer available' });
-        }
-
         // Check the student has no conflicting lesson across ALL coaches
         const conflict = await findConflict(req.user.userId, dateTime, dur);
         if (conflict) {
@@ -143,7 +134,7 @@ router.post('/request', [auth, isStudent], async (req, res) => {
         });
         await lesson.save();
 
-        // Lock the slot so no other student can request the same time
+        // Lock the slot if the coach has set one up; safe to skip if not
         await Schedule.findOneAndUpdate(
             {
                 coach: coachId,

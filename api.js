@@ -90,6 +90,13 @@ const Api = {
         return this._fetch(`/api/users/${id}`);
     },
 
+    addCoach(coachId) {
+        return this._fetch('/api/users/add-coach', {
+            method: 'POST',
+            body: JSON.stringify({ coachId })
+        });
+    },
+
     // ── Schedules ────────────────────────────────────────────────────────────
     getSchedule(coachId) {
         return this._fetch(`/api/schedules/coach/${coachId}`);

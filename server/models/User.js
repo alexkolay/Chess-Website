@@ -36,11 +36,11 @@ const userSchema = new mongoose.Schema({
         type: [String],
         default: []
     },
-    // For students — reference to their coach
-    coach: {
+    // For students — references to their coaches (multiple allowed)
+    coaches: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
-    },
+    }],
     createdAt: {
         type: Date,
         default: Date.now
