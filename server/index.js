@@ -21,6 +21,10 @@ db.once('open', () => {
     console.log('Connected to MongoDB');
 });
 
+// Serve static HTML/CSS/JS files from the project root
+const path = require('path');
+app.use(express.static(path.join(__dirname, '..')));
+
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/lessons', require('./routes/lessons'));
