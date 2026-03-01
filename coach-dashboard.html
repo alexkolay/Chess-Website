@@ -94,6 +94,7 @@
         </div>
     </footer>
 
+    <script src="api.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Check if user is logged in as coach
@@ -130,11 +131,7 @@
             // Handle logout
             document.getElementById('logout-btn').addEventListener('click', function(e) {
                 e.preventDefault();
-                localStorage.removeItem('isLoggedIn');
-                localStorage.removeItem('userType');
-                localStorage.removeItem('username');
-                localStorage.removeItem('coachData');
-                window.location.href = 'login.html';
+                Api.logout();
             });
 
             // Function to calculate accurate stats from all schedule data

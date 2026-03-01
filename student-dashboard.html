@@ -311,6 +311,7 @@
         </div>
     </footer>
 
+    <script src="api.js"></script>
     <script>
         // Global variables
         let currentWeekOffset = 0;
@@ -1619,12 +1620,7 @@
             // Logout handler
             document.getElementById('logout-btn').addEventListener('click', function(e) {
                 e.preventDefault();
-                localStorage.removeItem('isLoggedIn');
-                localStorage.removeItem('userType');
-                localStorage.removeItem('username');
-                localStorage.removeItem('studentData');
-                localStorage.removeItem('coachData');
-                window.location.href = 'login.html';
+                Api.logout();
             });
         });
     </script>
