@@ -116,231 +116,83 @@
         </div>
     </footer>
 
+    <script src="api.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Redirect if already logged in
+            if (Api.isLoggedIn()) {
+                const user = Api.getCurrentUser();
+                window.location.href = user && user.role === 'coach'
+                    ? 'coach-dashboard.html' : 'student-dashboard.html';
+                return;
+            }
+
             // Tab switching functionality
             const tabs = document.querySelectorAll('.tab-button');
             const forms = document.querySelectorAll('.login-form');
 
-            // Special coach credentials
-            const ALEX_CREDENTIALS = {
-                username: 'chessboss2020',
-                password: 'FideMaster2022!',
-                name: 'Alex Kolay',
-                title: 'FIDE Master',
-                specialization: 'Opening Preparation and Endgame Technique'
-            };
-
-            // Special student credentials
-            const JOHN_CREDENTIALS = {
-                username: 'johnnyboy',
-                password: 'KnightLover123!',
-                name: 'John',
-                coach: 'Alex Kolay'
-            };
-
             tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
-                    // Remove active class from all tabs and forms
                     tabs.forEach(t => t.classList.remove('active'));
                     forms.forEach(f => f.classList.remove('active'));
-
-                    // Add active class to clicked tab and corresponding form
                     tab.classList.add('active');
-                    const formId = `${tab.dataset.tab}-login-form`;
-                    document.getElementById(formId).classList.add('active');
+                    document.getElementById(`${tab.dataset.tab}-login-form`).classList.add('active');
                 });
             });
 
-            // Coach login handling
-            const coachForm = document.getElementById('coach-login-form');
-            const expertiseGroup = document.getElementById('expertise-group');
-            const coachUsername = document.getElementById('coach-username');
-            const coachPassword = document.getElementById('coach-password');
-
-            // Check if expertise field should be shown when username/password are entered
-            function checkExpertiseField() {
-                const username = coachUsername.value;
-                const password = coachPassword.value;
-                
-                if (username && password) {
-                    // Check if this is Alex (he always needs to set expertise)
-                    if (username === ALEX_CREDENTIALS.username && password === ALEX_CREDENTIALS.password) {
-                        expertiseGroup.style.display = 'block';
-                        document.getElementById('coach-expertise').required = true;
-                        return;
-                    }
-                    
-                    // Check other registered coaches
-                    const storedData = localStorage.getItem('userData_' + username);
-                    if (storedData) {
-                        const userData = JSON.parse(storedData);
-                        if (userData.userType === 'coach' && userData.password === password) {
-                            // Always show expertise field - allow coaches to set/update it
-                            // If coach already has expertise, pre-select it
-                            if (userData.expertise) {
-                                expertiseGroup.style.display = 'block';
-                                document.getElementById('coach-expertise').value = userData.expertise;
-                                document.getElementById('coach-expertise').required = false; // Not required if already set
-                            } else {
-                                // First time login - show expertise field and require it
-                                expertiseGroup.style.display = 'block';
-                                document.getElementById('coach-expertise').required = true;
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Add event listeners to check expertise field visibility
-            coachUsername.addEventListener('input', checkExpertiseField);
-            coachPassword.addEventListener('input', checkExpertiseField);
-
-            coachForm.addEventListener('submit', function(e) {
+            // ── Coach login ──────────────────────────────────────────────────
+            document.getElementById('coach-login-form').addEventListener('submit', async function(e) {
                 e.preventDefault();
-                const username = document.getElementById('coach-username').value;
+                const username = document.getElementById('coach-username').value.trim();
                 const password = document.getElementById('coach-password').value;
-                const expertise = document.getElementById('coach-expertise').value;
                 const errorDiv = document.getElementById('coach-login-error');
+                errorDiv.style.display = 'none';
 
-                // Check if coach already has expertise
-                const storedData = localStorage.getItem('userData_' + username);
-                let existingExpertise = null;
-                if (storedData) {
-                    try {
-                        const userData = JSON.parse(storedData);
-                        existingExpertise = userData.expertise;
-                    } catch(e) {}
-                }
-
-                // Validate expertise selection - if field is visible and coach doesn't have expertise yet, require it
-                if (expertiseGroup.style.display !== 'none' && !expertise && !existingExpertise) {
-                    errorDiv.textContent = 'Please select your expertise';
-                    errorDiv.style.display = 'block';
-                    return;
-                }
-                
-                // Debug: Log what we're trying to save
-                if (expertise) {
-                    console.log('Saving expertise for', username, ':', expertise);
-                }
-
-                // Check for Alex's credentials first
-                if (username === ALEX_CREDENTIALS.username && password === ALEX_CREDENTIALS.password) {
-                    localStorage.setItem('isLoggedIn', 'true');
-                    localStorage.setItem('userType', 'coach');
-                    localStorage.setItem('username', username);
-                    localStorage.setItem('coachData', JSON.stringify({
-                        name: ALEX_CREDENTIALS.name,
-                        title: ALEX_CREDENTIALS.title,
-                        specialization: ALEX_CREDENTIALS.specialization,
-                        expertise: expertise
-                    }));
-                    window.location.href = 'coach-dashboard.html';
-                    return;
-                }
-
-                // Check other registered coaches
-                const storedData = localStorage.getItem('userData_' + username);
-                if (storedData) {
-                    const userData = JSON.parse(storedData);
-                    if (userData.userType === 'coach' && userData.password === password) {
-                        // Determine what expertise to save
-                        let expertiseToSave = null;
-                        
-                        // Priority 1: Use the value from the dropdown if provided
-                        if (expertise && expertise.trim()) {
-                            expertiseToSave = expertise.trim();
-                        }
-                        // Priority 2: Keep existing expertise if no new value provided
-                        else if (userData.expertise && userData.expertise.trim()) {
-                            expertiseToSave = userData.expertise.trim();
-                        }
-                        // Priority 3: If field is visible and required, we need a value
-                        else if (expertiseGroup.style.display !== 'none' && document.getElementById('coach-expertise').required) {
-                            errorDiv.textContent = 'Please select your expertise';
-                            errorDiv.style.display = 'block';
-                            return;
-                        }
-                        
-                        // Save expertise if we have one
-                        if (expertiseToSave) {
-                            userData.expertise = expertiseToSave;
-                            // CRITICAL: Save the updated userData back to localStorage
-                            localStorage.setItem('userData_' + username, JSON.stringify(userData));
-                            console.log('✓ Saved expertise for', username, ':', expertiseToSave);
-                            console.log('✓ Full userData saved:', JSON.stringify(userData, null, 2));
-                        } else {
-                            console.log('⚠ No expertise to save for', username);
-                        }
-                        
-                        localStorage.setItem('isLoggedIn', 'true');
-                        localStorage.setItem('userType', 'coach');
-                        localStorage.setItem('username', username);
-                        
-                        localStorage.setItem('coachData', JSON.stringify({
-                            name: userData.name || userData.username,
-                            title: userData.title || 'Chess Coach',
-                            specialization: userData.specialization || 'General Chess Training',
-                            expertise: userData.expertise || userData.specialization || 'General Chess Training'
-                        }));
-                        window.location.href = 'coach-dashboard.html';
+                try {
+                    const user = await Api.login(username, password);
+                    if (user.role !== 'coach') {
+                        errorDiv.textContent = 'This account is not a coach account.';
+                        errorDiv.style.display = 'block';
+                        Api.clearSession();
                         return;
                     }
+                    window.location.href = 'coach-dashboard.html';
+                } catch (err) {
+                    errorDiv.textContent = err.message || 'Invalid username or password';
+                    errorDiv.style.display = 'block';
                 }
-                
-                errorDiv.textContent = 'Invalid username or password';
-                errorDiv.style.display = 'block';
             });
 
-            // Student login handling
-            const studentForm = document.getElementById('student-login-form');
-            studentForm.addEventListener('submit', function(e) {
+            // ── Student login ─────────────────────────────────────────────────
+            document.getElementById('student-login-form').addEventListener('submit', async function(e) {
                 e.preventDefault();
-                const username = document.getElementById('student-username').value;
+                const username = document.getElementById('student-username').value.trim();
                 const password = document.getElementById('student-password').value;
                 const errorDiv = document.getElementById('student-login-error');
+                errorDiv.style.display = 'none';
 
-                // Check for John's credentials
-                if (username === JOHN_CREDENTIALS.username && password === JOHN_CREDENTIALS.password) {
-                    localStorage.setItem('isLoggedIn', 'true');
-                    localStorage.setItem('userType', 'student');
-                    localStorage.setItem('username', username);
-                    localStorage.setItem('studentData', JSON.stringify(JOHN_CREDENTIALS));
-                    window.location.href = 'student-dashboard.html';
-                    return;
-                }
-
-                // Check other registered students
-                const storedData = localStorage.getItem('userData_' + username);
-                if (storedData) {
-                    const userData = JSON.parse(storedData);
-                    if (userData.userType === 'student' && userData.password === password) {
-                        localStorage.setItem('isLoggedIn', 'true');
-                        localStorage.setItem('userType', 'student');
-                        localStorage.setItem('username', username);
-                        localStorage.setItem('studentData', JSON.stringify({
-                            name: userData.name || userData.username,
-                            coach: userData.coach || 'Available Coach',
-                            rating: userData.rating || 1200
-                        }));
-                        window.location.href = 'student-dashboard.html';
+                try {
+                    const user = await Api.login(username, password);
+                    if (user.role !== 'student') {
+                        errorDiv.textContent = 'This account is not a student account.';
+                        errorDiv.style.display = 'block';
+                        Api.clearSession();
                         return;
                     }
+                    window.location.href = 'student-dashboard.html';
+                } catch (err) {
+                    errorDiv.textContent = err.message || 'Invalid username or password';
+                    errorDiv.style.display = 'block';
                 }
-                
-                errorDiv.textContent = 'Invalid username or password';
-                errorDiv.style.display = 'block';
             });
 
-            const forgotLink = document.getElementById('forgot-password-link');
-            const resetForm = document.getElementById('reset-password-form');
+            // ── Forgot / reset password ───────────────────────────────────────
+            const forgotLink  = document.getElementById('forgot-password-link');
+            const resetForm   = document.getElementById('reset-password-form');
             const resetMessage = document.getElementById('reset-password-message');
             const cancelReset = document.getElementById('cancel-reset');
 
-            forgotLink.addEventListener('click', function(e) {
-                e.preventDefault();
-                // Hide login forms, forgot button, and register link, then show reset form
+            forgotLink.addEventListener('click', function() {
                 document.querySelectorAll('.login-form').forEach(f => f.style.display = 'none');
                 forgotLink.style.display = 'none';
                 document.getElementById('register-link').style.display = 'none';
@@ -355,38 +207,39 @@
                 document.getElementById('register-link').style.display = '';
             });
 
-            resetForm.addEventListener('submit', function(e) {
+            resetForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
-                const username = document.getElementById('reset-username').value.trim();
+                const username    = document.getElementById('reset-username').value.trim();
                 const newPassword = document.getElementById('reset-new-password').value;
-                const confirmPassword = document.getElementById('reset-confirm-password').value;
-                if (!username || !newPassword || !confirmPassword) {
+                const confirmPwd  = document.getElementById('reset-confirm-password').value;
+
+                if (!username || !newPassword || !confirmPwd) {
+                    resetMessage.style.color = '';
                     resetMessage.textContent = 'Please fill in all fields.';
-                    resetMessage.style.color = '';
                     return;
                 }
-                if (newPassword !== confirmPassword) {
+                if (newPassword !== confirmPwd) {
+                    resetMessage.style.color = '';
                     resetMessage.textContent = 'Passwords do not match.';
-                    resetMessage.style.color = '';
                     return;
                 }
-                const userKey = 'userData_' + username;
-                const userDataRaw = localStorage.getItem(userKey);
-                if (!userDataRaw) {
-                    resetMessage.textContent = 'Username not found.';
+
+                try {
+                    await Api.resetPassword(username, newPassword);
+                    resetMessage.style.color = 'green';
+                    resetMessage.textContent = 'Password reset successfully! You can now log in.';
+                    setTimeout(() => {
+                        resetForm.style.display = 'none';
+                        document.querySelectorAll('.login-form').forEach(f => f.style.display = '');
+                        forgotLink.style.display = '';
+                        document.getElementById('register-link').style.display = '';
+                        resetMessage.style.color = '';
+                        resetMessage.textContent = '';
+                    }, 2000);
+                } catch (err) {
                     resetMessage.style.color = '';
-                    return;
+                    resetMessage.textContent = err.message || 'Reset failed. Please try again.';
                 }
-                const userData = JSON.parse(userDataRaw);
-                userData.password = newPassword;
-                localStorage.setItem(userKey, JSON.stringify(userData));
-                resetMessage.style.color = 'green';
-                resetMessage.textContent = 'Password reset successfully! You can now log in.';
-                setTimeout(() => {
-                    resetForm.style.display = 'none';
-                    document.querySelectorAll('.login-form').forEach(f => f.style.display = '');
-                    resetMessage.style.color = '';
-                }, 2000);
             });
         });
     </script>

@@ -122,57 +122,67 @@
         </div>
     </footer>
 
+    <script src="api.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const form = document.getElementById('register-form');
-            const password = document.getElementById('password');
+            const form            = document.getElementById('register-form');
+            const passwordEl      = document.getElementById('password');
             const confirmPassword = document.getElementById('confirmPassword');
-            const username = document.getElementById('username');
-            const userType = document.getElementById('userType');
-            const coachFields = document.getElementById('coach-fields');
-            const studentFields = document.getElementById('student-fields');
-            const errorDiv = document.getElementById('register-error');
-            const requirements = {
-                length: document.getElementById('length'),
+            const usernameEl      = document.getElementById('username');
+            const userType        = document.getElementById('userType');
+            const coachFields     = document.getElementById('coach-fields');
+            const studentFields   = document.getElementById('student-fields');
+            const errorDiv        = document.getElementById('register-error');
+            const requirements    = {
+                length:    document.getElementById('length'),
                 uppercase: document.getElementById('uppercase'),
                 lowercase: document.getElementById('lowercase'),
-                number: document.getElementById('number'),
-                special: document.getElementById('special')
+                number:    document.getElementById('number'),
+                special:   document.getElementById('special')
             };
 
-            // Show/hide fields based on user type
-            function renderCoachSelection() {
+            // ── Load coaches from the API for the student sign-up picker ──────
+            async function renderCoachSelection() {
                 const coachSelectGroup = document.getElementById('coach-select-group');
                 coachSelectGroup.style.display = 'block';
                 const coachSelection = document.getElementById('coach-selection');
-                coachSelection.innerHTML = '';
-                const keys = Object.keys(localStorage);
-                const userKeys = keys.filter(key => key.startsWith('userData_'));
-                let foundCoach = false;
-                userKeys.forEach(key => {
-                    const userData = JSON.parse(localStorage.getItem(key));
-                    if (userData && userData.userType === 'coach') {
-                        foundCoach = true;
+                coachSelection.innerHTML = '<p style="color:#888;">Loading coaches…</p>';
+
+                try {
+                    const coaches = await Api.getCoaches();
+                    coachSelection.innerHTML = '';
+
+                    if (!coaches.length) {
+                        coachSelection.innerHTML = '<p style="color:#888;">No coaches available yet. Please try again later.</p>';
+                        return;
+                    }
+
+                    coaches.forEach(coach => {
+                        const name  = (coach.profile && coach.profile.name) || coach.username;
+                        const title = (coach.profile && coach.profile.title) || 'Coach';
+                        const spec  = (coach.expertise && coach.expertise.join(', ')) || 'General Training';
+                        const rate  = coach.hourlyRate ? `$${coach.hourlyRate}/hr` : '';
+
                         const btn = document.createElement('button');
                         btn.type = 'button';
                         btn.className = 'coach-btn';
-                        btn.style = 'border: 2px solid #4ecdc4; border-radius: 8px; padding: 1rem; background: #fff; cursor: pointer; min-width: 200px; transition: background 0.2s;';
-                        btn.innerHTML = `<strong>${userData.name}</strong><br>Title: ${userData.title || 'Coach'}<br>Specialization: ${userData.specialization || 'General Training'}`;
+                        btn.dataset.coachUsername = coach.username;
+                        btn.style.cssText = 'border:2px solid #4ecdc4;border-radius:8px;padding:1rem;background:#fff;cursor:pointer;min-width:200px;transition:background 0.2s;';
+                        btn.innerHTML = `<strong>${name}</strong><br>Title: ${title}<br>Specialization: ${spec}${rate ? `<br>${rate}` : ''}`;
                         btn.onclick = function() {
-                            // Deselect all
                             document.querySelectorAll('.coach-btn').forEach(b => b.style.background = '#fff');
                             btn.style.background = '#e8f5e9';
-                            document.getElementById('selected-coach').value = userData.name;
+                            document.getElementById('selected-coach').value = coach.username;
                             document.getElementById('coach-error').style.display = 'none';
                         };
                         coachSelection.appendChild(btn);
-                    }
-                });
-                if (!foundCoach) {
-                    coachSelection.innerHTML = '<p style="color: #888;">No coaches available. Please try again later.</p>';
+                    });
+                } catch (err) {
+                    coachSelection.innerHTML = '<p style="color:#c00;">Could not load coaches. Is the server running?</p>';
                 }
             }
-            // Show/hide fields based on user type
+
+            // ── Show/hide role-specific fields ────────────────────────────────
             userType.addEventListener('change', function() {
                 if (this.value === 'student') {
                     studentFields.style.display = 'block';
@@ -184,144 +194,90 @@
                     document.getElementById('coach-select-group').style.display = 'none';
                 }
             });
-
-            // Initialize fields on page load
             userType.dispatchEvent(new Event('change'));
 
-            // Password validation function
+            // ── Password validation ───────────────────────────────────────────
             function validatePassword(value) {
                 const checks = {
-                    length: value.length >= 8,
+                    length:    value.length >= 8,
                     uppercase: /[A-Z]/.test(value),
                     lowercase: /[a-z]/.test(value),
-                    number: /[0-9]/.test(value),
-                    special: /[!@#$%^&*(),.?":{}|<>]/.test(value)
+                    number:    /[0-9]/.test(value),
+                    special:   /[!@#$%^&*(),.?":{}|<>]/.test(value)
                 };
-
-                // Update requirement list styling
-                Object.keys(checks).forEach(check => {
-                    if (checks[check]) {
-                        requirements[check].classList.add('met');
-                        requirements[check].classList.remove('unmet');
-                    } else {
-                        requirements[check].classList.add('unmet');
-                        requirements[check].classList.remove('met');
-                    }
+                Object.keys(checks).forEach(k => {
+                    requirements[k].classList.toggle('met', checks[k]);
+                    requirements[k].classList.toggle('unmet', !checks[k]);
                 });
-
                 return Object.values(checks).every(Boolean);
             }
 
-            // Real-time password validation
-            password.addEventListener('input', function() {
+            passwordEl.addEventListener('input', function() {
                 validatePassword(this.value);
-                
-                // Check if passwords match
                 if (confirmPassword.value) {
-                    const matchMessage = document.getElementById('match-message');
-                    if (this.value === confirmPassword.value) {
-                        matchMessage.classList.add('met');
-                        matchMessage.classList.remove('unmet');
-                    } else {
-                        matchMessage.classList.add('unmet');
-                        matchMessage.classList.remove('met');
-                    }
+                    const match = this.value === confirmPassword.value;
+                    document.getElementById('match-message').classList.toggle('met', match);
+                    document.getElementById('match-message').classList.toggle('unmet', !match);
                 }
             });
 
-            // Confirm password validation
             confirmPassword.addEventListener('input', function() {
-                const matchMessage = document.getElementById('match-message');
-                if (this.value === password.value) {
-                    matchMessage.classList.add('met');
-                    matchMessage.classList.remove('unmet');
-                } else {
-                    matchMessage.classList.add('unmet');
-                    matchMessage.classList.remove('met');
-                }
+                const match = this.value === passwordEl.value;
+                document.getElementById('match-message').classList.toggle('met', match);
+                document.getElementById('match-message').classList.toggle('unmet', !match);
             });
 
-            // Form submission
-            form.addEventListener('submit', function(e) {
+            // ── Form submission ───────────────────────────────────────────────
+            form.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 errorDiv.style.display = 'none';
 
-                // Validate username length
-                if (username.value.length < 4) {
+                if (usernameEl.value.length < 4) {
                     errorDiv.textContent = 'Username must be at least 4 characters long';
                     errorDiv.style.display = 'block';
                     return;
                 }
-
-                // Check if username already exists
-                if (localStorage.getItem('userData_' + username.value)) {
-                    errorDiv.textContent = 'Username already exists. Please choose a different username.';
-                    errorDiv.style.display = 'block';
-                    return;
-                }
-
-                // Validate password
-                if (!validatePassword(password.value)) {
+                if (!validatePassword(passwordEl.value)) {
                     errorDiv.textContent = 'Password does not meet all requirements';
                     errorDiv.style.display = 'block';
                     return;
                 }
-
-                // Check if passwords match
-                if (password.value !== confirmPassword.value) {
+                if (passwordEl.value !== confirmPassword.value) {
                     errorDiv.textContent = 'Passwords do not match';
                     errorDiv.style.display = 'block';
                     return;
                 }
 
-                // If all validations pass, store the user data
-                const userData = {
-                    username: username.value,
-                    name: document.getElementById('fullName').value,
-                    email: document.getElementById('email').value,
-                    userType: userType.value,
-                    password: password.value // In a real app, this should be hashed
+                const payload = {
+                    username: usernameEl.value.trim(),
+                    name:     document.getElementById('fullName').value.trim(),
+                    email:    document.getElementById('email').value.trim(),
+                    password: passwordEl.value,
+                    role:     userType.value
                 };
 
-                // Add user type specific data
                 if (userType.value === 'coach') {
-                    userData.title = document.getElementById('title').value;
-                    userData.specialization = document.getElementById('specialization').value;
+                    payload.title          = document.getElementById('title').value.trim();
+                    payload.specialization = document.getElementById('specialization').value.trim();
                 } else {
-                    userData.rating = document.getElementById('rating').value || 1200;
+                    payload.rating = document.getElementById('rating').value || 1200;
                     const selectedCoach = document.getElementById('selected-coach').value;
                     if (!selectedCoach) {
-                        // Check if there are any coaches available
-                        const keys = Object.keys(localStorage);
-                        const userKeys = keys.filter(key => key.startsWith('userData_'));
-                        const hasCoaches = userKeys.some(key => {
-                            try {
-                                const userData = JSON.parse(localStorage.getItem(key));
-                                return userData && userData.userType === 'coach';
-                            } catch (e) {
-                                return false;
-                            }
-                        });
-                        
-                        if (hasCoaches) {
-                            document.getElementById('coach-error').textContent = 'Please select a coach.';
-                            document.getElementById('coach-error').style.display = 'block';
-                            return;
-                        } else {
-                            // No coaches available yet, allow registration without coach
-                            userData.coach = 'Available Coach';
-                        }
-                    } else {
-                        userData.coach = selectedCoach;
+                        document.getElementById('coach-error').textContent = 'Please select a coach.';
+                        document.getElementById('coach-error').style.display = 'block';
+                        return;
                     }
+                    payload.coachUsername = selectedCoach;
                 }
 
-                // Store user data
-                localStorage.setItem('userData_' + username.value, JSON.stringify(userData));
-
-                // Show success message and redirect
-                alert('Account created successfully! Please log in.');
-                window.location.href = 'login.html';
+                try {
+                    await Api.register(payload);
+                    alert('Account created successfully! Please log in.');
+                    window.location.href = 'login.html';
+                } catch (err) {
+                    errorDiv.textContent = err.message || 'Registration failed. Please try again.';
+                    errorDiv.style.display = 'block';
+                }
             });
         });
     </script>

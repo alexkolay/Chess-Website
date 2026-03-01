@@ -30,17 +30,16 @@ const userSchema = new mongoose.Schema({
     // For coaches
     hourlyRate: {
         type: Number,
-        required: function() {
-            return this.role === 'coach';
-        }
+        default: 50
     },
-    // For students
+    expertise: {
+        type: [String],
+        default: []
+    },
+    // For students — reference to their coach
     coach: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: function() {
-            return this.role === 'student';
-        }
+        ref: 'User'
     },
     createdAt: {
         type: Date,
@@ -48,4 +47,4 @@ const userSchema = new mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model('User', userSchema); 
+module.exports = mongoose.model('User', userSchema);

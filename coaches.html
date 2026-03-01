@@ -347,252 +347,77 @@
         </div>
     </footer>
 
+    <script src="api.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Function to load coaches from localStorage
-            function loadCoachesFromStorage() {
-                const coaches = [];
-                const keys = Object.keys(localStorage);
-                const userKeys = keys.filter(key => key.startsWith('userData_'));
-                
-                userKeys.forEach(key => {
-                    try {
-                        const userData = JSON.parse(localStorage.getItem(key));
-                        if (userData && userData.userType === 'coach') {
-                            // Debug: Log what we're finding for each coach
-                            console.log(`Coach: ${userData.name || userData.username} (${userData.username})`, {
-                                hasExpertise: !!userData.expertise,
-                                expertise: userData.expertise,
-                                hasSpecialization: !!userData.specialization,
-                                specialization: userData.specialization,
-                                rawUserData: userData
-                            });
-                        // Count students for this coach
-                        let studentCount = 0;
-                        const studentKeys = keys.filter(k => k.startsWith('userData_'));
-                        const uniqueStudents = new Set(); // Track unique students to avoid double counting
-                        
-                        studentKeys.forEach(studentKey => {
-                            try {
-                                const studentData = JSON.parse(localStorage.getItem(studentKey));
-                                if (studentData && studentData.userType === 'student') {
-                                    // Check if student is assigned to this coach (single coach or in coaches array)
-                                    const studentUsername = studentKey.replace('userData_', '');
-                                    const isAssigned = 
-                                        studentData.coach === userData.name || 
-                                        studentData.coach === userData.username ||
-                                        (Array.isArray(studentData.coaches) && (
-                                            studentData.coaches.includes(userData.name) || 
-                                            studentData.coaches.includes(userData.username)
-                                        )) ||
-                                        (Array.isArray(studentData.coachUsernames) && 
-                                         studentData.coachUsernames.includes(userData.username));
-                                    
-                                    if (isAssigned && !uniqueStudents.has(studentUsername)) {
-                                        studentCount++;
-                                        uniqueStudents.add(studentUsername);
-                                    }
-                                }
-                            } catch (e) {
-                                // Ignore corrupted student data
-                                console.warn('Corrupted student data found:', studentKey);
-                            }
-                        });
-                        
-                        // Also count students from schedule data who have booked lessons with this coach
-                        // Schedule keys are in format: scheduleData_{coachUsername}_{weekKey}
-                        const scheduleKeys = keys.filter(k => {
-                            if (!k.startsWith('scheduleData_')) return false;
-                            const parts = k.split('_');
-                            // Check if the coach username matches (second part of the key)
-                            return parts.length >= 3 && parts[1] === userData.username;
-                        });
-                        
-                        scheduleKeys.forEach(scheduleKey => {
-                            try {
-                                const scheduleData = JSON.parse(localStorage.getItem(scheduleKey));
-                                if (scheduleData && scheduleData.weeklySchedule) {
-                                    Object.values(scheduleData.weeklySchedule).forEach(daySlots => {
-                                        if (Array.isArray(daySlots)) {
-                                            daySlots.forEach(slot => {
-                                                if (slot.status === 'booked' && slot.student) {
-                                                    const studentIdentifier = slot.student; // Could be name or username
-                                                    // Try to find student by name or username
-                                                    let studentUsername = null;
-                                                    
-                                                    // First try as username
-                                                    if (localStorage.getItem('userData_' + studentIdentifier)) {
-                                                        studentUsername = studentIdentifier;
-                                                    } else {
-                                                        // Try to find by name
-                                                        const allStudentKeys = keys.filter(k => k.startsWith('userData_'));
-                                                        for (const studentKey of allStudentKeys) {
-                                                            try {
-                                                                const studentData = JSON.parse(localStorage.getItem(studentKey));
-                                                                if (studentData && studentData.userType === 'student' && 
-                                                                    (studentData.name === studentIdentifier || studentData.username === studentIdentifier)) {
-                                                                    studentUsername = studentData.username || studentKey.replace('userData_', '');
-                                                                    break;
-                                                                }
-                                                            } catch (e) {
-                                                                // Continue searching
-                                                            }
-                                                        }
-                                                    }
-                                                    
-                                                    // Only count if not already counted and student exists
-                                                    if (studentUsername && !uniqueStudents.has(studentUsername)) {
-                                                        try {
-                                                            const studentData = JSON.parse(localStorage.getItem('userData_' + studentUsername));
-                                                            if (studentData && studentData.userType === 'student') {
-                                                                studentCount++;
-                                                                uniqueStudents.add(studentUsername);
-                                                            }
-                                                        } catch (e) {
-                                                            // Ignore if student data doesn't exist
-                                                        }
-                                                    }
-                                                }
-                                            });
-                                        }
-                                    });
-                                }
-                            } catch (e) {
-                                // Ignore corrupted schedule data
-                            }
-                        });
-                        
-                        // Parse expertise - SIMPLIFIED: check expertise field first (set during login), then specialization (set during registration)
-                        let expertise = [];
-                        
-                        // First check for expertise (set during login) - this is the priority
-                        // Simple check: if expertise exists and is not empty/null/undefined
-                        if (userData.expertise) {
-                            const expValue = userData.expertise;
-                            if (Array.isArray(expValue)) {
-                                expertise = expValue.filter(exp => exp && String(exp).trim());
-                            } else {
-                                const expStr = String(expValue).trim();
-                                // Only add if it's a valid non-empty string
-                                if (expStr && expStr.length > 0 && expStr !== 'null' && expStr !== 'undefined') {
-                                    expertise = [expStr];
-                                }
-                            }
-                        }
-                        
-                        // If no expertise found, check specialization (set during registration)
-                        if (expertise.length === 0 && userData.specialization) {
-                            const specValue = userData.specialization;
-                            if (Array.isArray(specValue)) {
-                                expertise = specValue.filter(exp => exp && String(exp).trim());
-                            } else {
-                                const specStr = String(specValue).trim();
-                                if (specStr && specStr.length > 0 && specStr !== 'null' && specStr !== 'undefined') {
-                                    // Specialization is a comma-separated string from registration
-                                    expertise = specStr.split(',').map(exp => exp.trim()).filter(exp => exp && exp.length > 0);
-                                }
-                            }
-                        }
-                        
-                        // Only use default if absolutely nothing is found
-                        if (expertise.length === 0) {
-                            expertise = ['General Training'];
-                        }
-                        
-                        // Debug: Log the final result for each coach
-                        console.log(`Expertise for ${userData.name || userData.username}:`, {
-                            rawExpertise: userData.expertise,
-                            rawSpecialization: userData.specialization,
-                            finalExpertise: expertise
-                        });
-                        
-                        // Use coach's actual rating if available, otherwise generate based on title
-                        let rating = userData.rating || 2000; // Use actual rating if set
-                        if (!userData.rating && userData.title) {
-                            // Fallback to title-based rating if no actual rating provided
-                            if (userData.title.toLowerCase().includes('fide master')) {
-                                rating = 2300;
-                            } else if (userData.title.toLowerCase().includes('international master')) {
-                                rating = 2400;
-                            } else if (userData.title.toLowerCase().includes('national master')) {
-                                rating = 2200;
-                            } else if (userData.title.toLowerCase().includes('woman')) {
-                                rating = 2100;
-                            }
-                        }
-                        
-                        coaches.push({
-                            id: coaches.length + 1,
-                            name: userData.name || userData.username,
-                            title: userData.title || 'Chess Coach',
-                            rating: rating,
-                            expertise: expertise.length > 0 ? expertise : ['General Training'],
-                            stats: {
-                                students: studentCount,
-                                rating: rating
-                            },
-                            website: `https://${userData.username.toLowerCase()}chess.com`,
-                            email: userData.email,
-                            availability: 'Available'
-                        });
-                    }
-                    } catch (e) {
-                        // Ignore corrupted user data
-                        console.warn('Corrupted user data found:', key);
-                    }
-                });
-                
-                return coaches;
+        document.addEventListener('DOMContentLoaded', async function() {
+
+            // ── Normalize raw API coach into the shape the render functions expect ──
+            function normalizeCoach(raw) {
+                const name      = (raw.profile && raw.profile.name) || raw.username;
+                const title     = (raw.profile && raw.profile.title) || 'Chess Coach';
+                const expertise = (raw.expertise && raw.expertise.length)
+                    ? raw.expertise : ['General Training'];
+
+                let rating = (raw.profile && raw.profile.rating) || 0;
+                if (!rating && title) {
+                    const t = title.toLowerCase();
+                    if      (t.includes('international master')) rating = 2400;
+                    else if (t.includes('fide master'))          rating = 2300;
+                    else if (t.includes('national master'))      rating = 2200;
+                    else if (t.includes('woman'))                rating = 2100;
+                    else                                         rating = 2000;
+                }
+
+                return {
+                    id:        raw._id,
+                    username:  raw.username,
+                    name,
+                    title,
+                    rating,
+                    expertise,
+                    hourlyRate: raw.hourlyRate || 50,
+                    stats: { students: raw.studentCount || 0, rating },
+                    email: raw.email || ''
+                };
             }
-            
-            // Function to update stats
+
+            // ── Stats bar ─────────────────────────────────────────────────────
             function updateStats(coaches) {
-                const totalCoaches = coaches.length;
-                let totalStudents = 0;
-                let totalRating = 0;
-                
-                coaches.forEach(coach => {
-                    totalStudents += coach.stats.students;
-                    totalRating += coach.rating;
-                });
-                
-                const avgRating = totalCoaches > 0 ? Math.round(totalRating / totalCoaches) : 0;
-                
-                document.getElementById('total-coaches-count').textContent = totalCoaches;
+                let totalStudents = 0, totalRating = 0;
+                coaches.forEach(c => { totalStudents += c.stats.students; totalRating += c.rating; });
+                const avg = coaches.length ? Math.round(totalRating / coaches.length) : 0;
+                document.getElementById('total-coaches-count').textContent = coaches.length;
                 document.getElementById('total-students-count').textContent = totalStudents;
-                document.getElementById('avg-rating').textContent = avgRating;
-            }
-            
-            // Load coaches from localStorage
-            let coaches = loadCoachesFromStorage();
-            
-            // If no coaches found in localStorage, show a message
-            if (coaches.length === 0) {
-                const grid = document.getElementById('coaches-grid');
-                grid.innerHTML = `
-                    <div style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
-                        <h3>No coaches registered yet</h3>
-                        <p>Be the first to register as a coach!</p>
-                        <a href="register.html" class="cta-button primary">Register as Coach</a>
-                    </div>
-                `;
-                updateStats([]);
-                return;
+                document.getElementById('avg-rating').textContent = avg;
             }
 
-            let filteredCoaches = [...coaches];
-
-            function renderCoaches(coachesToRender) {
+            // ── Coach card renderer ───────────────────────────────────────────
+            function renderCoaches(list) {
                 const grid = document.getElementById('coaches-grid');
                 grid.innerHTML = '';
 
-                coachesToRender.forEach(coach => {
-                    const coachCard = document.createElement('div');
-                    coachCard.className = 'coach-card';
-                    
-                    const initials = coach.name.split(' ').map(n => n[0]).join('');
-                    
-                    coachCard.innerHTML = `
+                if (!list.length) {
+                    grid.innerHTML = `
+                        <div style="grid-column:1/-1;text-align:center;padding:2rem;">
+                            <h3>No coaches found</h3>
+                            <p>Try a different search or filter.</p>
+                        </div>`;
+                    return;
+                }
+
+                list.forEach(coach => {
+                    const initials = coach.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                    const rateLabel = `$${coach.hourlyRate}/hr`;
+
+                    // Link to the owner's coaching page for Alex, otherwise a mailto
+                    const isOwner = coach.username === 'chessboss2020';
+                    const primaryLink = isOwner
+                        ? `<a href="coaching.html" class="coach-link primary">View Profile</a>`
+                        : `<a href="mailto:${coach.email}" class="coach-link primary">Contact</a>`;
+
+                    const card = document.createElement('div');
+                    card.className = 'coach-card';
+                    card.innerHTML = `
                         <div class="coach-header">
                             <div class="coach-avatar">${initials}</div>
                             <div class="coach-info">
@@ -604,107 +429,106 @@
                                 </div>
                             </div>
                         </div>
-                        
                         <div class="coach-expertise">
                             <strong>Expertise:</strong>
                             <div class="expertise-tags">
-                                ${coach.expertise.map(exp => `<span class="expertise-tag">${exp}</span>`).join('')}
+                                ${coach.expertise.map(e => `<span class="expertise-tag">${e}</span>`).join('')}
                             </div>
                         </div>
-                        
-
-                        
                         <div class="coach-stats">
                             <div class="stat-item">
                                 <div class="stat-number">${coach.stats.students}</div>
                                 <div class="stat-label">Students</div>
                             </div>
                             <div class="stat-item">
-                                <div class="stat-number">${coach.stats.rating}</div>
+                                <div class="stat-number">${coach.rating}</div>
                                 <div class="stat-label">Rating</div>
                             </div>
+                            <div class="stat-item">
+                                <div class="stat-number">${rateLabel}</div>
+                                <div class="stat-label">Rate</div>
+                            </div>
                         </div>
-                        
                         <div class="coach-links">
-                            <a href="mailto:${coach.email}" class="coach-link primary">Contact</a>
-                            <a href="${coach.website}" target="_blank" class="coach-link website">Website</a>
-                        </div>
-                    `;
-                    
-                    grid.appendChild(coachCard);
+                            ${primaryLink}
+                        </div>`;
+                    grid.appendChild(card);
                 });
             }
 
-            // Search functionality
-            const searchInput = document.getElementById('coach-search');
-            searchInput.addEventListener('input', function() {
-                const searchTerm = this.value.toLowerCase();
-                filteredCoaches = coaches.filter(coach => 
-                    coach.name.toLowerCase().includes(searchTerm) ||
-                    coach.title.toLowerCase().includes(searchTerm) ||
-                    coach.expertise.some(exp => exp.toLowerCase().includes(searchTerm))
+            // ── Load coaches from API ─────────────────────────────────────────
+            let coaches = [];
+
+            async function loadCoaches() {
+                const grid = document.getElementById('coaches-grid');
+                grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:2rem;"><p>Loading coaches…</p></div>';
+                try {
+                    const raw = await Api.getCoaches();
+                    coaches = raw.map(normalizeCoach);
+                } catch (err) {
+                    grid.innerHTML = `
+                        <div style="grid-column:1/-1;text-align:center;padding:2rem;">
+                            <h3>Could not load coaches</h3>
+                            <p>Make sure the server is running (<code>npm start</code>).</p>
+                        </div>`;
+                    updateStats([]);
+                    return;
+                }
+
+                if (!coaches.length) {
+                    grid.innerHTML = `
+                        <div style="grid-column:1/-1;text-align:center;padding:2rem;">
+                            <h3>No coaches registered yet</h3>
+                            <p>Be the first to <a href="register.html">register as a coach</a>!</p>
+                        </div>`;
+                    updateStats([]);
+                    return;
+                }
+
+                filteredCoaches = [...coaches];
+                renderCoaches(filteredCoaches);
+                updateStats(coaches);
+            }
+
+            let filteredCoaches = [];
+
+            // ── Search ────────────────────────────────────────────────────────
+            document.getElementById('coach-search').addEventListener('input', function() {
+                const term = this.value.toLowerCase();
+                filteredCoaches = coaches.filter(c =>
+                    c.name.toLowerCase().includes(term) ||
+                    c.title.toLowerCase().includes(term) ||
+                    c.expertise.some(e => e.toLowerCase().includes(term))
                 );
                 renderCoaches(filteredCoaches);
             });
 
-            // Filter functionality
-            const filterButtons = document.querySelectorAll('.filter-btn');
-            filterButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    // Remove active class from all buttons
-                    filterButtons.forEach(btn => btn.classList.remove('active'));
-                    // Add active class to clicked button
+            // ── Filters ───────────────────────────────────────────────────────
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
-                    
                     const filter = this.dataset.filter;
-                    
-                    if (filter === 'all') {
-                        filteredCoaches = [...coaches];
-                    } else {
-                        filteredCoaches = coaches.filter(coach => 
-                            coach.expertise.some(exp => 
-                                exp.toLowerCase().includes(filter.toLowerCase())
-                            )
-                        );
-                    }
-                    
+                    filteredCoaches = filter === 'all'
+                        ? [...coaches]
+                        : coaches.filter(c => c.expertise.some(e => e.toLowerCase().includes(filter.toLowerCase())));
                     renderCoaches(filteredCoaches);
                 });
             });
 
-            // Refresh coaches functionality
-            const refreshButton = document.getElementById('refresh-coaches');
-            refreshButton.addEventListener('click', function() {
-                coaches = loadCoachesFromStorage();
-                filteredCoaches = [...coaches];
-                renderCoaches(coaches);
-                updateStats(coaches);
-                
-                // Update filter buttons if needed
-                const activeFilter = document.querySelector('.filter-btn.active');
-                if (activeFilter && activeFilter.dataset.filter !== 'all') {
-                    const filter = activeFilter.dataset.filter;
-                    filteredCoaches = coaches.filter(coach => 
-                        coach.expertise.some(exp => 
-                            exp.toLowerCase().includes(filter.toLowerCase())
-                        )
-                    );
-                    renderCoaches(filteredCoaches);
-                }
-            });
+            // ── Refresh button ────────────────────────────────────────────────
+            document.getElementById('refresh-coaches').addEventListener('click', loadCoaches);
 
-            // Mobile menu toggle
+            // ── Mobile menu ───────────────────────────────────────────────────
             const mobileMenu = document.getElementById('mobile-menu');
             const navbarMenu = document.querySelector('.navbar__menu');
-            
             mobileMenu.addEventListener('click', function() {
                 mobileMenu.classList.toggle('is-active');
                 navbarMenu.classList.toggle('active');
             });
 
-            // Initial render
-            renderCoaches(coaches);
-            updateStats(coaches);
+            // ── Initial load ──────────────────────────────────────────────────
+            await loadCoaches();
         });
     </script>
 </body>
