@@ -111,8 +111,21 @@ const Api = {
         return this._fetch('/api/lessons');
     },
 
+    // Pending requests in the coach's inbox
+    getPendingRequests() {
+        return this._fetch('/api/lessons/pending');
+    },
+
     createLesson(data) {
         return this._fetch('/api/lessons', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    },
+
+    // Student requests a lesson from a coach's available slot
+    requestLesson(data) {
+        return this._fetch('/api/lessons/request', {
             method: 'POST',
             body: JSON.stringify(data)
         });

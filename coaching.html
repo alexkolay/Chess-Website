@@ -3,14 +3,298 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coaching - Alex Kolay Chess</title>
+    <title>Chess Coaching with Alex Kolay — FIDE Master</title>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* ── Hero ──────────────────────────────────────────────────────────── */
+        .coaching-hero {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #fff;
+            padding: 5rem 2rem 4rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .coaching-hero::before {
+            content: '♔';
+            position: absolute;
+            font-size: 20rem;
+            opacity: 0.04;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+        .hero-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 20px;
+            padding: 0.35rem 1rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+            margin-bottom: 1.25rem;
+        }
+        .coaching-hero h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 800;
+            margin: 0 0 0.5rem;
+            line-height: 1.15;
+        }
+        .hero-subtitle {
+            font-size: 1.15rem;
+            opacity: 0.8;
+            margin-bottom: 2.25rem;
+        }
+        .rate-pill {
+            display: inline-block;
+            background: #f5a623;
+            color: #1a1a2e;
+            font-size: 1.6rem;
+            font-weight: 800;
+            padding: 0.6rem 2rem;
+            border-radius: 50px;
+            margin-bottom: 2rem;
+        }
+        .hero-cta-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn-hero-primary {
+            background: #f5a623;
+            color: #1a1a2e;
+            font-weight: 700;
+            padding: 0.85rem 2.25rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-size: 1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-hero-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(245,166,35,0.4);
+        }
+        .btn-hero-secondary {
+            background: transparent;
+            color: #fff;
+            font-weight: 600;
+            padding: 0.85rem 2.25rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-size: 1rem;
+            border: 2px solid rgba(255,255,255,0.4);
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .btn-hero-secondary:hover {
+            border-color: #fff;
+            background: rgba(255,255,255,0.08);
+        }
+
+        /* ── Stats bar ─────────────────────────────────────────────────────── */
+        .stats-bar {
+            background: #fff;
+            border-bottom: 1px solid #e8e8e8;
+            padding: 1.75rem 2rem;
+        }
+        .stats-bar__inner {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-around;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .stat-item { text-align: center; }
+        .stat-item .number {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--primary, #4ecdc4);
+            line-height: 1;
+        }
+        .stat-item .label {
+            font-size: 0.85rem;
+            color: #777;
+            margin-top: 0.25rem;
+        }
+
+        /* ── Generic section ───────────────────────────────────────────────── */
+        .section { padding: 4rem 2rem; }
+        .section--alt { background: #f8f9fa; }
+        .section__inner { max-width: 900px; margin: 0 auto; }
+        .section h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 1.5rem;
+        }
+        .section h2 .accent { color: var(--primary, #4ecdc4); }
+
+        /* ── Two-column layout ─────────────────────────────────────────────── */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: start;
+        }
+        @media (max-width: 700px) {
+            .two-col { grid-template-columns: 1fr; gap: 2rem; }
+        }
+
+        /* ── Expertise pills ───────────────────────────────────────────────── */
+        .expertise-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+        }
+        .expertise-pill {
+            background: #e8f5f4;
+            color: #2a9d8f;
+            border: 1px solid #b2dfdb;
+            border-radius: 20px;
+            padding: 0.4rem 1rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        /* ── Teaching approach cards ───────────────────────────────────────── */
+        .approach-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+            gap: 1.25rem;
+            margin-top: 1rem;
+        }
+        .approach-card {
+            background: #fff;
+            border: 1px solid #e8e8e8;
+            border-radius: 10px;
+            padding: 1.4rem 1rem;
+            text-align: center;
+        }
+        .approach-card .icon { font-size: 1.8rem; margin-bottom: 0.6rem; }
+        .approach-card h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+            color: #1a1a2e;
+        }
+        .approach-card p { font-size: 0.85rem; color: #666; line-height: 1.5; }
+
+        /* ── Achievements list ─────────────────────────────────────────────── */
+        .achievement-list { list-style: none; padding: 0; margin: 0; }
+        .achievement-list li {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+            align-items: flex-start;
+        }
+        .achievement-list .year {
+            min-width: 58px;
+            font-weight: 700;
+            color: var(--primary, #4ecdc4);
+            font-size: 0.88rem;
+            padding-top: 0.1rem;
+        }
+        .achievement-list .desc { font-size: 0.95rem; color: #333; line-height: 1.55; }
+
+        /* ── Rate cards ────────────────────────────────────────────────────── */
+        .rate-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+        .rate-card {
+            background: #fff;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .rate-card:hover {
+            border-color: var(--primary, #4ecdc4);
+            box-shadow: 0 6px 20px rgba(78,205,196,0.15);
+        }
+        .rate-card.featured {
+            border-color: var(--primary, #4ecdc4);
+            position: relative;
+        }
+        .rate-card.featured::before {
+            content: 'Most Popular';
+            position: absolute;
+            top: -13px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary, #4ecdc4);
+            color: #fff;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.25rem 0.9rem;
+            border-radius: 10px;
+            white-space: nowrap;
+        }
+        .rate-card h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 0.5rem;
+        }
+        .rate-price {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--primary, #4ecdc4);
+            line-height: 1;
+            margin: 0.5rem 0 0.25rem;
+        }
+        .rate-unit { font-size: 0.85rem; color: #888; margin-bottom: 1.25rem; }
+        .rate-card ul { list-style: none; padding: 0; margin: 0 0 1.5rem; text-align: left; }
+        .rate-card ul li {
+            font-size: 0.9rem;
+            color: #555;
+            padding: 0.3rem 0 0.3rem 1.4rem;
+            position: relative;
+        }
+        .rate-card ul li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: var(--primary, #4ecdc4);
+            font-weight: 700;
+        }
+        .rate-card .note { font-size: 0.8rem; color: #888; margin-bottom: 1rem; }
+        .btn-book {
+            display: block;
+            background: var(--primary, #4ecdc4);
+            color: #fff;
+            font-weight: 700;
+            padding: 0.75rem 1.75rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: opacity 0.2s;
+        }
+        .btn-book:hover { opacity: 0.85; }
+
+        /* ── Bottom CTA ────────────────────────────────────────────────────── */
+        .bottom-cta {
+            background: linear-gradient(135deg, #1a1a2e, #0f3460);
+            color: #fff;
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+        .bottom-cta h2 { font-size: 2rem; font-weight: 800; margin-bottom: 0.75rem; }
+        .bottom-cta p { opacity: 0.75; margin-bottom: 2rem; font-size: 1.05rem; }
+    </style>
 </head>
 <body>
     <nav class="navbar">
         <div class="navbar__container">
-            <a href="index.html" id="navbar__logo">Alex Kolay Chess</a>
+            <a href="index.html" id="navbar__logo">Chess Coaching Platform</a>
             <div class="navbar__toggle" id="mobile-menu">
                 <span class="bar"></span>
                 <span class="bar"></span>
@@ -21,15 +305,11 @@
                     <a href="index.html" class="navbar__links">Home</a>
                 </li>
                 <li class="navbar__item">
-                    <a href="about.html" class="navbar__links">About</a>
+                    <a href="coaches.html" class="navbar__links">All Coaches</a>
                 </li>
                 <li class="navbar__item">
-                    <a href="achievements.html" class="navbar__links">Achievements</a>
+                    <a href="coaching.html" class="navbar__links active">Alex Kolay</a>
                 </li>
-                <li class="navbar__item">
-                    <a href="coaching.html" class="navbar__links active">Coaching</a>
-                </li>
-
                 <li class="navbar__btn">
                     <a href="login.html" class="button">Login</a>
                 </li>
@@ -38,58 +318,188 @@
     </nav>
 
     <main>
-        <section class="coaching-section">
-            <div class="chess-pattern"></div>
-            <div class="coaching__container">
-                <h1>Coaching Services</h1>
-                <div class="coaching__content">
-                    <div class="coaching__text">
-                        <h2>My Teaching Approach</h2>
-                        <ul>
-                            <li><strong>Personalized Learning:</strong> Every student receives a customized training program</li>
-                            <li><strong>Comprehensive Coverage:</strong> From openings to endgames, tactics to strategy</li>
-                            <li><strong>Interactive Sessions:</strong> Hands-on learning with real game analysis</li>
-                            <li><strong>Tournament Preparation:</strong> Specialized coaching for competitive players</li>
-                        </ul>
+        <!-- ── Hero ─────────────────────────────────────────────────────────── -->
+        <section class="coaching-hero">
+            <div class="hero-badge">FIDE Master &nbsp;·&nbsp; Rated 2300+</div>
+            <h1>Chess Coaching<br>with Alex Kolay</h1>
+            <p class="hero-subtitle">Personalized lessons for all levels — from beginner to tournament competitor</p>
+            <div class="rate-pill">$50 / hour</div>
+            <div class="hero-cta-group">
+                <a href="register.html" class="btn-hero-primary">Book a Lesson</a>
+                <a href="#rates" class="btn-hero-secondary">View All Rates</a>
+            </div>
+        </section>
+
+        <!-- ── Stats ─────────────────────────────────────────────────────────── -->
+        <section class="stats-bar">
+            <div class="stats-bar__inner">
+                <div class="stat-item">
+                    <div class="number">2300+</div>
+                    <div class="label">FIDE Rating</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number">FM</div>
+                    <div class="label">FIDE Title</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number">5+</div>
+                    <div class="label">Years Coaching</div>
+                </div>
+                <div class="stat-item">
+                    <div class="number">$50</div>
+                    <div class="label">Per Hour</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── About + Teaching approach ────────────────────────────────────── -->
+        <section class="section">
+            <div class="section__inner two-col">
+                <div>
+                    <h2>About <span class="accent">Alex Kolay</span></h2>
+                    <p style="color:#444;line-height:1.75;margin-bottom:1rem;">
+                        I'm a FIDE Master with a classical rating above 2300 and over a decade of competitive
+                        experience. I've competed in FIDE-rated opens and national championships, and I bring
+                        real tournament insight to every lesson.
+                    </p>
+                    <p style="color:#444;line-height:1.75;margin-bottom:1.5rem;">
+                        My coaching builds genuine understanding of the game rather than rote memorization.
+                        Every student receives a customized study plan — whether the goal is breaking a rating
+                        barrier, preparing for a tournament, or simply enjoying chess more deeply.
+                    </p>
+                    <div class="expertise-list">
+                        <span class="expertise-pill">Opening Preparation</span>
+                        <span class="expertise-pill">Endgame Technique</span>
+                        <span class="expertise-pill">Middlegame Strategy</span>
+                        <span class="expertise-pill">Tactics &amp; Calculation</span>
+                        <span class="expertise-pill">Tournament Prep</span>
                     </div>
-                    <div class="coaching__rates">
-                        <h2>Lesson Rates</h2>
-                        <div class="rate__cards">
-                            <div class="rate__card">
-                                <h3>Private Lessons</h3>
-                                <p class="price">$50/hour</p>
-                                <ul>
-                                    <li>One-on-one instruction</li>
-                                    <li>Personalized curriculum</li>
-                                    <li>Homework and practice positions</li>
-                                    <li>Game analysis</li>
-                                </ul>
-                                <a href="coaches.html" class="cta-button primary">Book Now</a>
-                            </div>
-                            <div class="rate__card">
-                                <h3>Practice Games</h3>
-                                <p class="price">$25/hour</p>
-                                <p class="note">For players rated 2000+ on chess.com or lichess</p>
-                                <ul>
-                                    <li>Game analysis included</li>
-                                    <li>Flexible time controls</li>
-                                    <li>Opening practice</li>
-                                </ul>
-                                <a href="coaches.html" class="cta-button primary">Book Now</a>
-                            </div>
+                </div>
+                <div>
+                    <h2>Teaching <span class="accent">Approach</span></h2>
+                    <div class="approach-grid">
+                        <div class="approach-card">
+                            <div class="icon">🎯</div>
+                            <h3>Personalized Plans</h3>
+                            <p>Custom curriculum matched to your level, style, and goals.</p>
+                        </div>
+                        <div class="approach-card">
+                            <div class="icon">🔍</div>
+                            <h3>Game Analysis</h3>
+                            <p>Review your real games to spot patterns and eliminate recurring mistakes.</p>
+                        </div>
+                        <div class="approach-card">
+                            <div class="icon">♟️</div>
+                            <h3>Opening Repertoire</h3>
+                            <p>Build a practical, easy-to-learn repertoire tailored to your style.</p>
+                        </div>
+                        <div class="approach-card">
+                            <div class="icon">🏆</div>
+                            <h3>Tournament Ready</h3>
+                            <p>Preparation for time pressure, opponent research, and mental stamina.</p>
                         </div>
                     </div>
                 </div>
+            </div>
+        </section>
+
+        <!-- ── Achievements ───────────────────────────────────────────────────── -->
+        <section class="section section--alt">
+            <div class="section__inner">
+                <h2>Chess <span class="accent">Achievements</span></h2>
+                <ul class="achievement-list">
+                    <li>
+                        <span class="year">FM Title</span>
+                        <span class="desc"><strong>FIDE Master</strong> — awarded by FIDE upon completing the required performance norms and rating</span>
+                    </li>
+                    <li>
+                        <span class="year">2300+</span>
+                        <span class="desc">Peak FIDE classical rating, placing in the top tier of rated players worldwide</span>
+                    </li>
+                    <li>
+                        <span class="year">Intl.</span>
+                        <span class="desc">Competed in FIDE-rated open tournaments across multiple countries, gaining experience against a wide range of playing styles</span>
+                    </li>
+                    <li>
+                        <span class="year">Natl.</span>
+                        <span class="desc">Multiple top-three finishes in national championship events</span>
+                    </li>
+                    <li>
+                        <span class="year">Club</span>
+                        <span class="desc">Led club team to league championship as player and team captain</span>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- ── Rates ──────────────────────────────────────────────────────────── -->
+        <section class="section" id="rates">
+            <div class="section__inner">
+                <h2>Lesson <span class="accent">Rates</span></h2>
+                <div class="rate-cards">
+                    <div class="rate-card featured">
+                        <h3>Private Lesson</h3>
+                        <div class="rate-price">$50</div>
+                        <div class="rate-unit">per hour</div>
+                        <ul>
+                            <li>One-on-one instruction</li>
+                            <li>Custom study plan</li>
+                            <li>Full game analysis</li>
+                            <li>Homework &amp; practice positions</li>
+                            <li>Zoom or Discord session</li>
+                        </ul>
+                        <a href="register.html" class="btn-book">Book Now</a>
+                    </div>
+                    <div class="rate-card">
+                        <h3>Practice Game</h3>
+                        <div class="rate-price">$25</div>
+                        <div class="rate-unit">per hour</div>
+                        <p class="note">For players rated 1800+ on Chess.com or Lichess</p>
+                        <ul>
+                            <li>Annotated game review</li>
+                            <li>Flexible time controls</li>
+                            <li>Opening &amp; endgame practice</li>
+                        </ul>
+                        <a href="register.html" class="btn-book">Book Now</a>
+                    </div>
+                    <div class="rate-card">
+                        <h3>Tournament Package</h3>
+                        <div class="rate-price">$180</div>
+                        <div class="rate-unit">4 hours · save $20</div>
+                        <ul>
+                            <li>4 × 1-hour sessions</li>
+                            <li>Opponent preparation</li>
+                            <li>Opening &amp; endgame review</li>
+                            <li>Post-tournament debrief</li>
+                        </ul>
+                        <a href="register.html" class="btn-book">Book Now</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── Bottom CTA ─────────────────────────────────────────────────────── -->
+        <section class="bottom-cta">
+            <h2>Ready to Level Up?</h2>
+            <p>Join my students and start improving today. Booking takes less than two minutes.</p>
+            <div class="hero-cta-group">
+                <a href="register.html" class="btn-hero-primary">Create an Account &amp; Book</a>
+                <a href="login.html" class="btn-hero-secondary">Already a student? Log in</a>
             </div>
         </section>
     </main>
 
     <footer class="footer">
         <div class="footer__container">
-            <p>&copy; 2024 Alex Kolay Chess. All rights reserved.</p>
+            <p>&copy; 2024 Alex Kolay &nbsp;·&nbsp; Chess Coaching Platform. All rights reserved.</p>
         </div>
     </footer>
 
-    <script src="app.js"></script>
+    <script>
+        document.getElementById('mobile-menu').addEventListener('click', function() {
+            this.classList.toggle('is-active');
+            document.querySelector('.navbar__menu').classList.toggle('active');
+        });
+    </script>
 </body>
-</html> 
+</html>

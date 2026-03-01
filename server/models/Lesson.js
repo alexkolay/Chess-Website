@@ -21,7 +21,11 @@ const lessonSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['scheduled', 'completed', 'cancelled'],
+        // pending  = student requested, awaiting coach acceptance
+        // scheduled = confirmed by coach
+        // completed = lesson took place
+        // cancelled = rejected or cancelled by either party
+        enum: ['pending', 'scheduled', 'completed', 'cancelled'],
         default: 'scheduled'
     },
     topic: {
@@ -44,4 +48,4 @@ const lessonSchema = new mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model('Lesson', lessonSchema); 
+module.exports = mongoose.model('Lesson', lessonSchema);
