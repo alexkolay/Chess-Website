@@ -1,7 +1,7 @@
 // Chess Coaching Platform — central API helper
 // Include this file before page-specific scripts: <script src="api.js"></script>
 
-const API_BASE = 'http://localhost:5000';
+const API_BASE = 'http://localhost:3001';
 
 const Api = {
     // ── Session helpers ──────────────────────────────────────────────────────
