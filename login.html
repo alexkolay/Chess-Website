@@ -49,11 +49,11 @@
                         <h1>Student Login</h1>
                         <div class="form-group">
                             <label for="student-username">Username</label>
-                            <input type="text" id="student-username" name="username" required>
+                            <input type="text" id="student-username" name="username" autocomplete="off" required>
                         </div>
                         <div class="form-group">
                             <label for="student-password">Password</label>
-                            <input type="password" id="student-password" name="password" required>
+                            <input type="password" id="student-password" name="password" autocomplete="current-password" required>
                         </div>
                         <div id="student-login-error" class="error-message"></div>
                         <button type="submit" class="cta-button primary">Login as Student</button>
@@ -64,11 +64,11 @@
                         <h1>Coach Login</h1>
                         <div class="form-group">
                             <label for="coach-username">Username</label>
-                            <input type="text" id="coach-username" name="username" required>
+                            <input type="text" id="coach-username" name="username" autocomplete="off" required>
                         </div>
                         <div class="form-group">
                             <label for="coach-password">Password</label>
-                            <input type="password" id="coach-password" name="password" required>
+                            <input type="password" id="coach-password" name="password" autocomplete="current-password" required>
                         </div>
                         <div class="form-group" id="expertise-group" style="display: none;">
                             <label for="coach-expertise">Expertise</label>
@@ -119,14 +119,6 @@
     <script src="api.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Redirect if already logged in
-            if (Api.isLoggedIn()) {
-                const user = Api.getCurrentUser();
-                window.location.href = user && user.role === 'coach'
-                    ? 'coach-dashboard.html' : 'student-dashboard.html';
-                return;
-            }
-
             // Tab switching functionality
             const tabs = document.querySelectorAll('.tab-button');
             const forms = document.querySelectorAll('.login-form');

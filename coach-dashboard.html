@@ -134,38 +134,14 @@
                 Api.logout();
             });
 
-            // Function to calculate accurate stats from all schedule data
-            function calculateStats() {
-                const keys = Object.keys(localStorage);
-                // Only look at schedule data for the current coach
-                const scheduleKeys = keys.filter(key => key.startsWith(`scheduleData_${username}_`));
-                
-                let totalActiveStudents = new Set();
-                let totalUpcomingLessons = 0;
-                let totalPendingRequests = 0;
-                
-                scheduleKeys.forEach(key => {
-                    const scheduleData = JSON.parse(localStorage.getItem(key));
-                    if (scheduleData && scheduleData.weeklySchedule) {
-                        Object.values(scheduleData.weeklySchedule).forEach(daySlots => {
-                            if (Array.isArray(daySlots)) {
-                                daySlots.forEach(slot => {
-                                    if (slot.status === 'booked' && slot.student) {
-                                        totalActiveStudents.add(slot.student);
-                                        totalUpcomingLessons++;
-                                    } else if (slot.status === 'pending' && slot.student) {
-                                        totalPendingRequests++;
-                                    }
-                                });
-                            }
-                        });
-                    }
-                });
-                
-                // Update stats display
-                document.getElementById('active-students-count').textContent = totalActiveStudents.size;
-                document.getElementById('upcoming-lessons-count').textContent = totalUpcomingLessons;
-                document.getElementById('pending-requests-count').textContent = totalPendingRequests;
+            // Fetch pending lesson requests from the API and update the counter
+            async function calculateStats() {
+                try {
+                    const pending = await Api.getPendingRequests();
+                    document.getElementById('pending-requests-count').textContent = pending.length;
+                } catch (err) {
+                    // Leave counter as-is if the request fails
+                }
             }
 
             // Function to get today's lessons from current week schedule
