@@ -746,11 +746,17 @@
                 }
 
                 // Build a lookup map: "Day|DisplayTime" → lesson
-                // so we can highlight slots that are pending or confirmed
+                // Filter to the currently-displayed week so lessons from other
+                // weeks don't bleed into this week's grid.
+                const weekMonday = getSelectedWeekDate();
+                const weekEnd = new Date(weekMonday);
+                weekEnd.setDate(weekEnd.getDate() + 5); // Saturday 00:00 (exclusive)
+
                 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
                 const lessonMap = {};
                 lessons.forEach(lesson => {
                     const dt = new Date(lesson.dateTime);
+                    if (dt < weekMonday || dt >= weekEnd) return; // not this week
                     const dow = dt.getDay(); // 1=Mon … 5=Fri
                     if (dow < 1 || dow > 5) return;
                     const day = days[dow - 1];
