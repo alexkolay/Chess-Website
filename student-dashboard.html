@@ -319,6 +319,16 @@
                     <option value="">Select a coach...</option>
                 </select>
             </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <label for="duration-select" style="display: block; margin-bottom: 0.5rem; font-weight: bold; color: #333;">Lesson Duration:</label>
+                <select id="duration-select" style="width: 100%; padding: 0.75rem; border: 2px solid #e0e0e0; border-radius: 4px; font-size: 1rem; background-color: #fff;">
+                    <option value="30">30 minutes</option>
+                    <option value="60" selected>1 hour</option>
+                    <option value="90">1.5 hours</option>
+                    <option value="120">2 hours</option>
+                </select>
+            </div>
             
             <div id="coach-info-display" style="margin-bottom: 1.5rem; padding: 1rem; background-color: #f8f9fa; border-radius: 4px; display: none;">
                 <h3 id="selected-coach-name" style="margin: 0 0 0.5rem 0; color: #4ecdc4;"></h3>
@@ -683,17 +693,27 @@
                 try {
                     const date = getDateForDay(window.selectedDay);
                     const time = to24Hour(window.selectedTime);
+                    const duration = parseInt(document.getElementById('duration-select').value) || 60;
 
                     await Api.requestLesson({
                         coachId,
                         date,
                         time,
-                        duration: 60,
+                        duration,
                         topic: 'Chess coaching session'
                     });
 
+                    // Compute end time for the confirmation message
+                    const startParts = window.selectedTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+                    let sh = parseInt(startParts[1]), sm = parseInt(startParts[2]);
+                    const sp = startParts[3].toUpperCase();
+                    if (sp === 'PM' && sh !== 12) sh += 12;
+                    if (sp === 'AM' && sh === 12) sh = 0;
+                    const endDate = new Date(2000, 0, 1, sh, sm + duration);
+                    const endTimeStr = endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
                     document.getElementById('coach-selection-modal').style.display = 'none';
-                    alert(`Lesson request sent for ${window.selectedDay} at ${window.selectedTime}. Waiting for coach approval.`);
+                    alert(`Lesson request sent for ${window.selectedDay}, ${window.selectedTime} – ${endTimeStr}. Waiting for coach approval.`);
                     renderAvailableSlots();
                 } catch (err) {
                     alert('Error: ' + (err.message || 'Could not send lesson request. Please try again.'));
@@ -754,14 +774,21 @@
 
                 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
                 const lessonMap = {};
+                const SLOT_MIN = 30;
                 lessons.forEach(lesson => {
                     const dt = new Date(lesson.dateTime);
                     if (dt < weekMonday || dt >= weekEnd) return; // not this week
                     const dow = dt.getDay(); // 1=Mon … 5=Fri
                     if (dow < 1 || dow > 5) return;
                     const day = days[dow - 1];
-                    const displayTime = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-                    lessonMap[`${day}|${displayTime}`] = lesson;
+                    const dur = lesson.duration || 60;
+                    const numSlots = Math.ceil(dur / SLOT_MIN);
+                    for (let i = 0; i < numSlots; i++) {
+                        const slotDt = new Date(dt.getTime() + i * SLOT_MIN * 60000);
+                        const displayTime = slotDt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                        const key = `${day}|${displayTime}`;
+                        if (!lessonMap[key]) lessonMap[key] = lesson;
+                    }
                 });
 
                 // Render 5-column weekly grid

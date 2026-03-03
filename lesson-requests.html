@@ -147,10 +147,12 @@
             // ── Build a card DOM element for one pending lesson ───────────────
             function makeCard(lesson) {
                 const dt      = new Date(lesson.dateTime);
+                const endDt   = new Date(dt.getTime() + (lesson.duration || 60) * 60000);
                 const dateStr = dt.toLocaleDateString('en-US', {
                     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
                 });
-                const timeStr = dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                const timeStr    = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                const endTimeStr = endDt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
                 const student = lesson.student;
                 const name    = (student.profile && student.profile.name) || student.username;
@@ -162,8 +164,8 @@
                 card.innerHTML = `
                     <div class="student-name">${name}${rating}</div>
                     <div class="request-meta">
-                        <strong>Date:</strong> ${dateStr} at ${timeStr}<br>
-                        <strong>Duration:</strong> ${lesson.duration} min<br>
+                        <strong>Date:</strong> ${dateStr}<br>
+                        <strong>Time:</strong> ${timeStr} – ${endTimeStr}<br>
                         <strong>Topic:</strong> ${lesson.topic}<br>
                         <strong>Price:</strong> $${lesson.price}
                         ${lesson.notes ? `<br><strong>Notes:</strong> ${lesson.notes}` : ''}

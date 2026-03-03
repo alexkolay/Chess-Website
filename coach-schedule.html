@@ -256,10 +256,7 @@
                 <button class="cta-button" id="next-week">Next Week &gt;</button>
             </div>
                             <div class="schedule-actions">
-                    <button class="cta-button secondary" id="schedule-settings">Schedule Settings</button>
                     <button class="cta-button secondary" id="manage-students">Manage Students</button>
-                    <button class="cta-button secondary" id="test-rating-setup" style="background-color: #ff6b6b;">Test Rating Setup</button>
-                    <button class="cta-button secondary" id="force-show-modal" style="background-color: #4ecdc4;">Force Show Modal</button>
                 </div>
         </div>
 
@@ -630,55 +627,87 @@
             //     }
             //     return false;
             // }
-            function renderSchedule() {
-                sampleSchedule = loadSchedule(getSelectedWeekDate());
+            async function renderSchedule() {
                 const grid = document.getElementById('schedule-grid');
+                grid.innerHTML = '<p style="color:#888;padding:1rem;">Loading schedule…</p>';
+
+                let lessons = [];
+                try {
+                    lessons = await Api.getLessons();
+                } catch (err) {
+                    grid.innerHTML = '<p style="color:red;padding:1rem;">Could not load schedule. Please refresh.</p>';
+                    return;
+                }
+
                 grid.innerHTML = '';
-                const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-                if (!sampleSchedule.weeklySchedule || Object.keys(sampleSchedule.weeklySchedule).length === 0) {
-                    sampleSchedule.weeklySchedule = getDefaultWeeklySchedule();
-                    saveSchedule(sampleSchedule, getSelectedWeekDate());
-            }
-                weekdays.forEach(day => {
-                    const dayColumn = document.createElement('div');
-                    dayColumn.className = 'day-column';
-                    const dayHeader = document.createElement('div');
-                    dayHeader.className = 'day-header';
-                    dayHeader.innerHTML = `<h3>${day}</h3>`;
-                    dayColumn.appendChild(dayHeader);
-                    const slots = sampleSchedule.weeklySchedule[day] || [];
-                    slots.forEach(slot => {
-                        const isPast = isTimeSlotPast(day, slot.time) && currentWeekOffset === 0;
-                        if (isPast && slot.status === 'available') {
-                            timeSlot = document.createElement('div');
-                            timeSlot.className = 'time-slot unavailable';
-                            timeSlot.innerHTML = `<strong>${slot.time}</strong><br>Past`;
-                        } else if (slot.status === 'pending') {
-                            timeSlot = document.createElement('div');
-                            timeSlot.className = 'time-slot unavailable';
-                            timeSlot.innerHTML = `<strong>${slot.time}</strong><br>Pending`;
-                        } else if (slot.status === 'booked') {
-                            timeSlot = document.createElement('div');
-                            timeSlot.className = 'time-slot booked';
-                            const student = sampleSchedule.students[slot.student] || {};
-                            timeSlot.innerHTML = `
-                                <strong>${slot.time}</strong><br>
-                                ${slot.student} (${student.rating || 'N/A'})<br>
-                                ${student.focus || 'General Training'}
-                            `;
-                        } else if (slot.status === 'available' && !isPast) {
-                            timeSlot = document.createElement('div');
-                            timeSlot.className = 'time-slot available';
-                            timeSlot.innerHTML = `<strong>${slot.time}</strong><br>Available`;
-                            timeSlot.onclick = () => showModal(day, slot.time);
+
+                // Filter lessons to the currently-displayed week
+                const weekMonday = getSelectedWeekDate();
+                const weekEnd    = new Date(weekMonday);
+                weekEnd.setDate(weekEnd.getDate() + 5); // Saturday 00:00 (exclusive)
+
+                // Build lessonMap: "Day|Time" → { lesson, isStart }
+                // Mark every 30-min slot covered by each lesson's duration.
+                const SLOT_MIN  = 30;
+                const dayNames  = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+                const lessonMap = {};
+                lessons.forEach(lesson => {
+                    const dt = new Date(lesson.dateTime);
+                    if (dt < weekMonday || dt >= weekEnd) return;
+                    const dow = dt.getDay();
+                    if (dow < 1 || dow > 5) return;
+                    const day      = dayNames[dow - 1];
+                    const dur      = lesson.duration || 60;
+                    const numSlots = Math.ceil(dur / SLOT_MIN);
+                    for (let i = 0; i < numSlots; i++) {
+                        const slotDt      = new Date(dt.getTime() + i * SLOT_MIN * 60000);
+                        const displayTime = slotDt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                        const key         = `${day}|${displayTime}`;
+                        if (!lessonMap[key]) lessonMap[key] = { lesson, isStart: i === 0 };
+                    }
+                });
+
+                // Generate 30-min slots 9 AM – 5 PM
+                const timeSlots = [];
+                for (let h = 9; h < 17; h++) {
+                    for (let m = 0; m < 60; m += 30) {
+                        const d = new Date(2000, 0, 1, h, m);
+                        timeSlots.push(d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }));
+                    }
+                }
+
+                dayNames.forEach(day => {
+                    const col = document.createElement('div');
+                    col.className = 'day-column';
+                    col.innerHTML = `<div class="day-header"><h3>${day}</h3></div>`;
+
+                    timeSlots.forEach(time => {
+                        const key   = `${day}|${time}`;
+                        const entry = lessonMap[key];
+                        const past  = isTimeSlotPast(day, time) && currentWeekOffset === 0;
+
+                        const el = document.createElement('div');
+                        if (entry) {
+                            const lesson      = entry.lesson;
+                            const studentName = (lesson.student && (lesson.student.profile?.name || lesson.student.username)) || 'Student';
+                            if (lesson.status === 'pending') {
+                                el.className   = 'time-slot unavailable';
+                                el.innerHTML   = `<strong>${time}</strong><br>${studentName}<br><small style="color:#856404;">Pending</small>`;
+                            } else {
+                                el.className = 'time-slot booked';
+                                el.innerHTML = `<strong>${time}</strong><br>${studentName}`;
+                            }
+                        } else if (past) {
+                            el.className = 'time-slot unavailable';
+                            el.innerHTML = `<strong>${time}</strong><br>Past`;
                         } else {
-                            timeSlot = document.createElement('div');
-                            timeSlot.className = 'time-slot unavailable';
-                            timeSlot.innerHTML = `<strong>${slot.time}</strong><br>Unavailable`;
+                            el.className = 'time-slot available';
+                            el.innerHTML = `<strong>${time}</strong><br>Available`;
                         }
-                        dayColumn.appendChild(timeSlot);
+                        col.appendChild(el);
                     });
-                    grid.appendChild(dayColumn);
+
+                    grid.appendChild(col);
                 });
             }
             // Modal elements
@@ -692,7 +721,6 @@
             const closeScheduleSettings = document.getElementById('close-schedule-settings');
             const scheduleSettingsForm = document.getElementById('schedule-settings-form');
             const resetScheduleBtn = document.getElementById('reset-schedule');
-            const scheduleSettingsBtn = document.getElementById('schedule-settings');
             function populateStudentDropdown() {
                 const studentNameSelect = document.getElementById('student-name');
                 studentNameSelect.innerHTML = '';
@@ -961,10 +989,6 @@
             }
 
             // Schedule Settings Event Listeners
-            scheduleSettingsBtn.addEventListener('click', function() {
-                loadScheduleSettings();
-                scheduleSettingsModal.style.display = 'block';
-            });
 
             closeScheduleSettings.onclick = function() {
                 scheduleSettingsModal.style.display = 'none';
@@ -1067,46 +1091,6 @@
                 alert('You can set your rating later in your profile settings.');
             });
 
-            // Test button for rating setup (for debugging)
-            document.getElementById('test-rating-setup').addEventListener('click', function() {
-                console.log('Test button clicked - showing rating setup modal');
-                const modal = document.getElementById('rating-setup-modal');
-                console.log('Modal element found:', modal);
-                if (modal) {
-                    modal.style.display = 'block';
-                    console.log('Modal display set to block');
-                } else {
-                    console.error('Modal element not found!');
-                    alert('Modal element not found. Check console for details.');
-                }
-            });
-
-            // Force show modal button (bypasses all checks)
-            document.getElementById('force-show-modal').addEventListener('click', function() {
-                console.log('Force show button clicked');
-                const modal = document.getElementById('rating-setup-modal');
-                if (modal) {
-                    // Force show with inline styles
-                    modal.style.display = 'block';
-                    modal.style.position = 'fixed';
-                    modal.style.top = '0';
-                    modal.style.left = '0';
-                    modal.style.width = '100%';
-                    modal.style.height = '100%';
-                    modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-                    modal.style.zIndex = '9999';
-                    console.log('Modal forced to show with inline styles');
-                } else {
-                    alert('Modal still not found! Creating a simple alert instead.');
-                    const rating = prompt('Enter your chess rating (0-3000):');
-                    if (rating && !isNaN(rating) && rating >= 0 && rating <= 3000) {
-                        const userData = JSON.parse(localStorage.getItem('userData_' + username) || '{}');
-                        userData.rating = parseInt(rating);
-                        localStorage.setItem('userData_' + username, JSON.stringify(userData));
-                        alert('Rating saved: ' + rating);
-                    }
-                }
-            });
 
             // Check if coach needs to set up schedule settings (first time login)
             function checkFirstTimeSetup() {
@@ -1134,17 +1118,6 @@
             // Initialize the schedule display
             updateWeekDisplay();
             renderSchedule();
-            
-            // Debug check
-            debugModalCheck();
-            alert('Coach schedule page loaded! Check console for modal debug info.');
-            
-            // Check for first-time setup - add delay to ensure DOM is ready
-            setTimeout(() => {
-                console.log('Running first-time setup checks...');
-                checkRatingSetup();
-                checkFirstTimeSetup();
-            }, 1000);
             
             // Handle logout
             document.getElementById('logout-btn').addEventListener('click', function(e) {
