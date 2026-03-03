@@ -179,8 +179,66 @@
             box-shadow: none;
         }
 
+        /* Inline weekly schedule grid */
+        .week-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.5rem;
+            margin-top: 1rem;
+            overflow-x: auto;
+        }
 
+        .day-column h3 {
+            text-align: center;
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 0.4rem 0;
+            margin: 0 0 0.4rem 0;
+            background: #f0f9ff;
+            border-radius: 4px;
+        }
 
+        .slot-cell {
+            padding: 0.35rem 0.4rem;
+            margin-bottom: 0.25rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            text-align: center;
+            border: 1px solid transparent;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+        .slot-cell.available {
+            background: #e8f5e9;
+            border-color: #c8e6c9;
+            cursor: pointer;
+        }
+
+        .slot-cell.available:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+        }
+
+        .slot-cell.pending {
+            background: #fff3cd;
+            border-color: #ffd966;
+            color: #856404;
+            cursor: default;
+        }
+
+        .slot-cell.confirmed {
+            background: #d4edda;
+            border-color: #b8dabd;
+            color: #155724;
+            cursor: default;
+        }
+
+        .slot-cell.past {
+            background: #f5f5f5;
+            border-color: #e0e0e0;
+            color: #bbb;
+            cursor: default;
+        }
 
     </style>
 </head>
@@ -228,13 +286,13 @@
 
                 <div class="dashboard-card">
                     <h2>Schedule a Lesson</h2>
+                    <p style="color:#666;margin-bottom:1rem;">Click any available time slot to request a lesson.</p>
                     <div class="schedule-controls">
                         <div class="date-navigation">
                             <button class="cta-button secondary" id="prev-week">Previous Week</button>
                             <span id="current-week" style="margin: 0 1rem;"></span>
                             <button class="cta-button secondary" id="next-week">Next Week</button>
                         </div>
-                        <button class="cta-button primary" id="select-time-slot">Select Time Slot</button>
                     </div>
                     <div id="available-slots"></div>
                 </div>
@@ -248,19 +306,6 @@
     </main>
 
 
-
-    <!-- Time Slot Selection Modal -->
-    <div id="time-slot-modal" class="modal">
-        <div class="modal-content" style="max-width: 700px;">
-            <span class="close-modal">&times;</span>
-            <h2>Select Time Slot & Coach</h2>
-            <div class="time-selection-container">
-                <div class="time-slots-grid" id="available-time-slots">
-                    <!-- Available time slots will be populated here -->
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Coach Selection Modal -->
     <div id="coach-selection-modal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 1000;">
@@ -285,21 +330,6 @@
             <div style="margin-top: 1.5rem; text-align: center;">
                 <button id="confirm-coach-selection" class="cta-button primary" style="margin-right: 1rem;">Book Lesson</button>
                 <button id="cancel-coach-selection" class="cta-button secondary">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Booking Confirmation Modal -->
-    <div id="booking-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <h2>Confirm Lesson Booking</h2>
-            <p>Would you like to book a lesson for:</p>
-            <p id="booking-time-display" style="font-weight: bold;"></p>
-            <p id="booking-coach-display" style="font-weight: bold; color: #4ecdc4;"></p>
-            <div style="margin-top: 1.5rem;">
-                <button id="confirm-booking" class="cta-button primary">Confirm Booking</button>
-                <button id="cancel-booking" class="cta-button secondary">Cancel</button>
             </div>
         </div>
     </div>
@@ -420,73 +450,6 @@
 
 
 
-
-
-            // Show time slot selection modal — all future slots are selectable
-            function showTimeSlotModal() {
-                if (myCoaches.length === 0) {
-                    alert('You need at least one coach before you can request a lesson. Use "Join More Coaches" to add one.');
-                    return;
-                }
-                const timeSlotsGrid = document.getElementById('available-time-slots');
-                const timeSlots = generateTimeSlots();
-                const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-
-                let html = '<div style="margin-bottom: 1rem;"><strong>Select a day and time to request a lesson:</strong></div>';
-
-                days.forEach(day => {
-                    html += `<div style="margin-bottom: 1.5rem;">
-                        <h3 style="color: #333; margin-bottom: 0.5rem;">${day}</h3>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 0.5rem;">`;
-
-                    timeSlots.forEach(time => {
-                        const past = isTimeSlotPast(day, time);
-                        html += `<div class="time-slot-option ${past ? 'unavailable' : 'available'}"
-                            ${past ? '' : `onclick="selectTimeSlot('${day}', '${time}')"` }>
-                            <div style="font-weight: 600;">${time}</div>
-                            <div style="font-size: 0.8rem; color: #666;">${past ? 'Past' : 'Request'}</div>
-                        </div>`;
-                    });
-
-                    html += '</div></div>';
-                });
-
-                timeSlotsGrid.innerHTML = html;
-                document.getElementById('time-slot-modal').style.display = 'block';
-            }
-
-            // Select time slot → populate coach dropdown from session coaches, show selection modal
-            window.selectTimeSlot = function(day, time) {
-                window.selectedDay = day;
-                window.selectedTime = time;
-
-                document.getElementById('time-slot-modal').style.display = 'none';
-
-                // Populate the coach dropdown with the student's actual coaches from the API session
-                const coachDropdown = document.getElementById('coach-dropdown');
-                coachDropdown.innerHTML = '<option value="">Select a coach...</option>';
-                myCoaches.forEach(coach => {
-                    const name = (coach.profile && coach.profile.name) || coach.username;
-                    const title = (coach.profile && coach.profile.title) || 'Chess Coach';
-                    const rate = coach.hourlyRate ? ` · $${coach.hourlyRate}/hr` : '';
-                    const opt = document.createElement('option');
-                    opt.value = coach._id;
-                    opt.textContent = `${name} — ${title}${rate}`;
-                    opt.setAttribute('data-coach', JSON.stringify({
-                        id: coach._id,
-                        username: coach.username,
-                        name,
-                        title,
-                        expertise: (coach.expertise && coach.expertise.join(', ')) || 'General Training',
-                        hourlyRate: coach.hourlyRate || 50
-                    }));
-                    coachDropdown.appendChild(opt);
-                });
-
-                document.getElementById('selected-time-display').textContent = `${day} at ${time}`;
-                document.getElementById('coach-info-display').style.display = 'none';
-                document.getElementById('coach-selection-modal').style.display = 'block';
-            };
 
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -629,39 +592,51 @@
                 renderAvailableSlots();
             });
 
-            // Modal elements
-            const modal = document.getElementById('booking-modal');
-            const closeModal = document.querySelector('.close-modal');
-            const cancelButton = document.getElementById('cancel-booking');
-            const timeSlotModal = document.getElementById('time-slot-modal');
+            // Coach selection modal
             const coachSelectionModal = document.getElementById('coach-selection-modal');
-
-            function hideModal() {
-                modal.style.display = 'none';
-            }
-
-            function hideTimeSlotModal() {
-                timeSlotModal.style.display = 'none';
-            }
 
             function hideCoachSelectionModal() {
                 coachSelectionModal.style.display = 'none';
             }
 
-            // Close modal events
-            closeModal.onclick = hideModal;
-            cancelButton.onclick = hideModal;
-            
-            // Time slot modal close events
-            document.querySelectorAll('#time-slot-modal .close-modal').forEach(closeBtn => {
-                closeBtn.onclick = hideTimeSlotModal;
-            });
-            
+            // Open coach selection modal when a slot is clicked
+            window.openSlotRequest = function(day, time) {
+                if (myCoaches.length === 0) {
+                    alert('You need at least one coach before requesting a lesson. Use "Join More Coaches" to add one.');
+                    return;
+                }
+                window.selectedDay = day;
+                window.selectedTime = time;
+
+                const coachDropdown = document.getElementById('coach-dropdown');
+                coachDropdown.innerHTML = '<option value="">Select a coach...</option>';
+                myCoaches.forEach(coach => {
+                    const name = (coach.profile && coach.profile.name) || coach.username;
+                    const title = (coach.profile && coach.profile.title) || 'Chess Coach';
+                    const rate = coach.hourlyRate ? ` · $${coach.hourlyRate}/hr` : '';
+                    const opt = document.createElement('option');
+                    opt.value = coach._id;
+                    opt.textContent = `${name} — ${title}${rate}`;
+                    opt.setAttribute('data-coach', JSON.stringify({ id: coach._id, username: coach.username, name, title }));
+                    coachDropdown.appendChild(opt);
+                });
+
+                // If only one coach, pre-select them
+                if (myCoaches.length === 1) {
+                    coachDropdown.selectedIndex = 1;
+                    document.getElementById('coach-info-display').style.display = 'none';
+                }
+
+                document.getElementById('selected-time-display').textContent = `${day} at ${time}`;
+                document.getElementById('coach-info-display').style.display = 'none';
+                coachSelectionModal.style.display = 'block';
+            };
+
             // Coach selection modal close events
             document.querySelectorAll('#coach-selection-modal .close-modal').forEach(closeBtn => {
                 closeBtn.onclick = hideCoachSelectionModal;
             });
-            
+
             document.getElementById('cancel-coach-selection').onclick = hideCoachSelectionModal;
             
             // Coach dropdown change event
@@ -727,23 +702,6 @@
                     btn.textContent = 'Book Lesson';
                 }
             });
-            
-
-            
-            // Select time slot button
-            document.getElementById('select-time-slot').addEventListener('click', showTimeSlotModal);
-            
-            window.onclick = function(event) {
-                if (event.target === modal) {
-                    hideModal();
-                }
-                if (event.target === timeSlotModal) {
-                    hideTimeSlotModal();
-                }
-                if (event.target === coachSelectionModal) {
-                    hideCoachSelectionModal();
-                }
-            };
 
             // Function to check if a time slot is in the past
             function isTimeSlotPast(day, time) {
@@ -771,42 +729,79 @@
                 return false;
             }
 
-            // Fetch lessons from API and render upcoming/pending in the dashboard
+            // Fetch lessons and render the weekly schedule grid + upcoming lessons list
             async function renderAvailableSlots() {
                 const slotsContainer = document.getElementById('available-slots');
                 const upcomingContainer = document.getElementById('upcoming-lessons');
-                slotsContainer.innerHTML = '';
-                upcomingContainer.innerHTML = '<p style="color:#888;">Loading lessons…</p>';
+                slotsContainer.innerHTML = '<p style="color:#888;">Loading schedule…</p>';
+                upcomingContainer.innerHTML = '<p style="color:#888;">Loading…</p>';
+
+                let lessons = [];
                 try {
-                    const lessons = await Api.getLessons();
-                    const now = new Date();
-                    const upcoming = lessons.filter(l =>
-                        (l.status === 'pending' || l.status === 'scheduled') &&
-                        new Date(l.dateTime) >= now
-                    );
-                    upcoming.sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
-                    if (upcoming.length === 0) {
-                        upcomingContainer.innerHTML = '<p>No upcoming lessons scheduled. Use "Select Time Slot" to request one.</p>';
-                    } else {
-                        upcomingContainer.innerHTML = upcoming.map(lesson => {
-                            const dt = new Date(lesson.dateTime);
-                            const dateStr = dt.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-                            const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-                            const coachName = (lesson.coach && (lesson.coach.profile?.name || lesson.coach.username)) || 'Coach';
-                            if (lesson.status === 'pending') {
-                                return `<div class="time-slot booked" style="background-color:#fff3cd;border-color:#ffeaa7;">
-                                    <strong>${dateStr} at ${timeStr}</strong><br>Pending Approval with ${coachName}
-                                </div>`;
-                            } else {
-                                return `<div class="time-slot booked">
-                                    <strong>${dateStr} at ${timeStr}</strong><br>Confirmed Lesson with ${coachName}
-                                </div>`;
-                            }
-                        }).join('');
-                    }
-                    slotsContainer.innerHTML = '<p style="color:#666;">Use the "Select Time Slot" button to request a lesson at any time.</p>';
+                    lessons = await Api.getLessons();
                 } catch (err) {
-                    upcomingContainer.innerHTML = '<p style="color:red;">Could not load lessons. Please refresh the page.</p>';
+                    slotsContainer.innerHTML = '<p style="color:red;">Could not load schedule. Please refresh.</p>';
+                    upcomingContainer.innerHTML = '';
+                    return;
+                }
+
+                // Build a lookup map: "Day|DisplayTime" → lesson
+                // so we can highlight slots that are pending or confirmed
+                const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+                const lessonMap = {};
+                lessons.forEach(lesson => {
+                    const dt = new Date(lesson.dateTime);
+                    const dow = dt.getDay(); // 1=Mon … 5=Fri
+                    if (dow < 1 || dow > 5) return;
+                    const day = days[dow - 1];
+                    const displayTime = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                    lessonMap[`${day}|${displayTime}`] = lesson;
+                });
+
+                // Render 5-column weekly grid
+                const timeSlots = generateTimeSlots();
+                let html = '<div class="week-grid">';
+                days.forEach(day => {
+                    html += `<div class="day-column"><h3>${day}</h3>`;
+                    timeSlots.forEach(time => {
+                        const key = `${day}|${time}`;
+                        const lesson = lessonMap[key];
+                        const past = isTimeSlotPast(day, time);
+
+                        if (past) {
+                            html += `<div class="slot-cell past">${time}</div>`;
+                        } else if (lesson && lesson.status === 'pending') {
+                            html += `<div class="slot-cell pending">${time}<br><small>Pending</small></div>`;
+                        } else if (lesson && lesson.status === 'scheduled') {
+                            const coachName = (lesson.coach && (lesson.coach.profile?.name || lesson.coach.username)) || 'Coach';
+                            html += `<div class="slot-cell confirmed">${time}<br><small>${coachName}</small></div>`;
+                        } else {
+                            html += `<div class="slot-cell available" onclick="openSlotRequest('${day}', '${time}')">${time}<br><small>Request</small></div>`;
+                        }
+                    });
+                    html += '</div>';
+                });
+                html += '</div>';
+                slotsContainer.innerHTML = html;
+
+                // Upcoming confirmed lessons list
+                const now = new Date();
+                const upcoming = lessons
+                    .filter(l => l.status === 'scheduled' && new Date(l.dateTime) >= now)
+                    .sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
+
+                if (upcoming.length === 0) {
+                    upcomingContainer.innerHTML = '<p>No confirmed lessons yet. Click an available slot above to request one.</p>';
+                } else {
+                    upcomingContainer.innerHTML = upcoming.map(lesson => {
+                        const dt = new Date(lesson.dateTime);
+                        const dateStr = dt.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+                        const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                        const coachName = (lesson.coach && (lesson.coach.profile?.name || lesson.coach.username)) || 'Coach';
+                        return `<div class="time-slot booked">
+                            <strong>${dateStr} at ${timeStr}</strong><br>Lesson with ${coachName}
+                        </div>`;
+                    }).join('');
                 }
             }
 
@@ -873,8 +868,8 @@
                 if (event.target === joinCoachesModal) {
                     joinCoachesModal.style.display = 'none';
                 }
-                if (event.target === modal) {
-                    hideModal();
+                if (event.target === coachSelectionModal) {
+                    hideCoachSelectionModal();
                 }
             };
 
