@@ -69,8 +69,24 @@
                                 <input type="text" id="title" name="title" placeholder="e.g., FIDE Master, National Master">
                             </div>
                             <div class="form-group">
-                                <label for="specialization">Specialization</label>
-                                <input type="text" id="specialization" name="specialization" placeholder="e.g., Opening Preparation, Endgame Technique">
+                                <label>Specialization <span style="color:#888;font-size:0.85rem;">(select all that apply)</span></label>
+                                <div id="specialization-options" style="display:flex;flex-direction:column;gap:0.5rem;margin-top:0.5rem;">
+                                    <label style="display:flex;align-items:center;gap:0.6rem;cursor:pointer;font-weight:normal;">
+                                        <input type="checkbox" name="specialization" value="Opening Preparation"> Opening Preparation
+                                    </label>
+                                    <label style="display:flex;align-items:center;gap:0.6rem;cursor:pointer;font-weight:normal;">
+                                        <input type="checkbox" name="specialization" value="Middlegame Strategy"> Middlegame Strategy
+                                    </label>
+                                    <label style="display:flex;align-items:center;gap:0.6rem;cursor:pointer;font-weight:normal;">
+                                        <input type="checkbox" name="specialization" value="Endgame Technique"> Endgame Technique
+                                    </label>
+                                    <label style="display:flex;align-items:center;gap:0.6rem;cursor:pointer;font-weight:normal;">
+                                        <input type="checkbox" name="specialization" value="Tactics & Calculation"> Tactics &amp; Calculation
+                                    </label>
+                                    <label style="display:flex;align-items:center;gap:0.6rem;cursor:pointer;font-weight:normal;">
+                                        <input type="checkbox" name="specialization" value="Tournament Prep"> Tournament Prep
+                                    </label>
+                                </div>
                             </div>
                         </div>
                         
@@ -81,9 +97,8 @@
                                 <input type="number" id="rating" name="rating" min="0" max="3000" placeholder="e.g., 1200">
                             </div>
                             <div class="form-group" id="coach-select-group" style="display: none;">
-                                <label><strong>Select Your Coach <span style="color: red;">*</span></strong></label>
+                                <label><strong>Select Your Coach(es) <span style="color: red;">*</span></strong> <span style="color:#888;font-size:0.85rem;">(choose one or more)</span></label>
                                 <div id="coach-selection" style="display: flex; flex-wrap: wrap; gap: 1rem;"></div>
-                                <input type="hidden" id="selected-coach" required>
                                 <div id="coach-error" class="error-message" style="display:none;"></div>
                             </div>
                         </div>
@@ -167,12 +182,14 @@
                         btn.type = 'button';
                         btn.className = 'coach-btn';
                         btn.dataset.coachUsername = coach.username;
-                        btn.style.cssText = 'border:2px solid #4ecdc4;border-radius:8px;padding:1rem;background:#fff;cursor:pointer;min-width:200px;transition:background 0.2s;';
+                        btn.dataset.selected = 'false';
+                        btn.style.cssText = 'border:2px solid #4ecdc4;border-radius:8px;padding:1rem;background:#fff;cursor:pointer;min-width:200px;transition:background 0.2s,border-color 0.2s;text-align:left;';
                         btn.innerHTML = `<strong>${name}</strong><br>Title: ${title}<br>Specialization: ${spec}${rate ? `<br>${rate}` : ''}`;
                         btn.onclick = function() {
-                            document.querySelectorAll('.coach-btn').forEach(b => b.style.background = '#fff');
-                            btn.style.background = '#e8f5e9';
-                            document.getElementById('selected-coach').value = coach.username;
+                            const isSelected = btn.dataset.selected === 'true';
+                            btn.dataset.selected = isSelected ? 'false' : 'true';
+                            btn.style.background = isSelected ? '#fff' : '#e8f5e9';
+                            btn.style.borderColor = isSelected ? '#4ecdc4' : '#27ae60';
                             document.getElementById('coach-error').style.display = 'none';
                         };
                         coachSelection.appendChild(btn);
@@ -257,17 +274,18 @@
                 };
 
                 if (userType.value === 'coach') {
-                    payload.title          = document.getElementById('title').value.trim();
-                    payload.specialization = document.getElementById('specialization').value.trim();
+                    payload.title = document.getElementById('title').value.trim();
+                    const checked = Array.from(document.querySelectorAll('#specialization-options input[type="checkbox"]:checked'));
+                    payload.specialization = checked.map(cb => cb.value).join(',');
                 } else {
                     payload.rating = document.getElementById('rating').value || 1200;
-                    const selectedCoach = document.getElementById('selected-coach').value;
-                    if (!selectedCoach) {
-                        document.getElementById('coach-error').textContent = 'Please select a coach.';
+                    const selectedBtns = Array.from(document.querySelectorAll('.coach-btn[data-selected="true"]'));
+                    if (!selectedBtns.length) {
+                        document.getElementById('coach-error').textContent = 'Please select at least one coach.';
                         document.getElementById('coach-error').style.display = 'block';
                         return;
                     }
-                    payload.coachUsername = selectedCoach;
+                    payload.coachUsernames = selectedBtns.map(b => b.dataset.coachUsername);
                 }
 
                 try {

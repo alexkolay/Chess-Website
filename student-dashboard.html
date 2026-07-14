@@ -284,6 +284,11 @@
                     </div>
                 </div>
 
+                <div class="dashboard-card" id="contact-coaches-card">
+                    <h2>Contact Your Coach</h2>
+                    <div id="contact-coaches-list"></div>
+                </div>
+
                 <div class="dashboard-card">
                     <h2>Schedule a Lesson</h2>
                     <p style="color:#666;margin-bottom:1rem;">Click any available time slot to request a lesson.</p>
@@ -552,6 +557,58 @@
                 renderNotifications();
             };
             renderNotifications();
+
+            // Populate "Contact Your Coach" card
+            // Built via DOM APIs (not innerHTML) since coach name/title/email are
+            // user-supplied at registration and must never be interpreted as HTML.
+            (function renderContactCoaches() {
+                const container = document.getElementById('contact-coaches-list');
+                container.innerHTML = '';
+                if (!myCoaches.length) {
+                    const p = document.createElement('p');
+                    p.style.color = '#888';
+                    p.textContent = 'No coaches assigned yet.';
+                    container.appendChild(p);
+                    return;
+                }
+                myCoaches.forEach(coach => {
+                    const name = (coach.profile && coach.profile.name) || coach.username;
+                    const title = (coach.profile && coach.profile.title) || 'Chess Coach';
+                    const email = coach.email || '';
+
+                    const row = document.createElement('div');
+                    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:0.75rem 0;border-bottom:1px solid #f0f0f0;';
+
+                    const info = document.createElement('div');
+                    const nameEl = document.createElement('strong');
+                    nameEl.style.color = '#4ecdc4';
+                    nameEl.textContent = name;
+                    const titleEl = document.createElement('span');
+                    titleEl.style.cssText = 'color:#888;font-size:0.85rem;margin-left:0.5rem;';
+                    titleEl.textContent = title;
+                    info.appendChild(nameEl);
+                    info.appendChild(titleEl);
+                    row.appendChild(info);
+
+                    if (email) {
+                        const link = document.createElement('a');
+                        const subject = encodeURIComponent('Chess Coaching Question');
+                        const body = encodeURIComponent(`Hi ${name},\n\nI had a question about my lessons.\n\nBest,\n${studentName}`);
+                        link.href = `mailto:${encodeURIComponent(email)}?subject=${subject}&body=${body}`;
+                        link.className = 'cta-button secondary';
+                        link.style.cssText = 'font-size:0.85rem;padding:0.4rem 1rem;';
+                        link.textContent = 'Email';
+                        row.appendChild(link);
+                    } else {
+                        const span = document.createElement('span');
+                        span.style.cssText = 'color:#bbb;font-size:0.85rem;';
+                        span.textContent = 'No email on file';
+                        row.appendChild(span);
+                    }
+
+                    container.appendChild(row);
+                });
+            })();
 
             // Week navigation
             const weekDisplay = document.getElementById('current-week');

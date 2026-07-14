@@ -83,6 +83,27 @@
                             </a>
                         </div>
                     </div>
+                    <!-- Profile Settings -->
+                    <div class="dashboard-card">
+                        <h2>Profile Settings</h2>
+                        <p style="color:#666;margin-bottom:1rem;">Update your public rate and FIDE rating shown to students.</p>
+                        <div id="profile-save-banner" style="display:none;margin-bottom:1rem;padding:0.6rem 1rem;border-radius:6px;font-size:0.9rem;"></div>
+                        <div style="margin-bottom:1.25rem;">
+                            <label for="input-hourly-rate" style="display:block;font-weight:600;margin-bottom:0.4rem;">Hourly Rate (USD)</label>
+                            <div style="display:flex;align-items:center;gap:0.5rem;">
+                                <span style="font-size:1.1rem;color:#555;">$</span>
+                                <input id="input-hourly-rate" type="number" min="0" step="1"
+                                    style="width:120px;padding:0.5rem 0.75rem;border:2px solid #e0e0e0;border-radius:6px;font-size:1rem;">
+                                <span style="color:#888;font-size:0.9rem;">/hr</span>
+                            </div>
+                        </div>
+                        <div style="margin-bottom:1.5rem;">
+                            <label for="input-fide-rating" style="display:block;font-weight:600;margin-bottom:0.4rem;">FIDE Rating</label>
+                            <input id="input-fide-rating" type="number" min="0" step="1" placeholder="e.g. 2300"
+                                style="width:150px;padding:0.5rem 0.75rem;border:2px solid #e0e0e0;border-radius:6px;font-size:1rem;">
+                        </div>
+                        <button id="save-profile-btn" class="cta-button primary">Save Changes</button>
+                    </div>
                 </div>
             </div>
         </section>
@@ -199,6 +220,54 @@
                     `;
                 }).join('');
             }
+
+            // Pre-fill profile settings from current session
+            const rateInput = document.getElementById('input-hourly-rate');
+            const ratingInput = document.getElementById('input-fide-rating');
+            rateInput.value = currentUser.hourlyRate || 50;
+            ratingInput.value = (currentUser.profile && currentUser.profile.rating) || '';
+
+            // Save profile settings
+            document.getElementById('save-profile-btn').addEventListener('click', async function() {
+                const btn = this;
+                const banner = document.getElementById('profile-save-banner');
+                const hourlyRate = parseFloat(rateInput.value);
+                const rating = ratingInput.value !== '' ? parseFloat(ratingInput.value) : undefined;
+
+                if (isNaN(hourlyRate) || hourlyRate < 0) {
+                    banner.textContent = 'Please enter a valid hourly rate.';
+                    banner.style.background = '#ffe4e4';
+                    banner.style.color = '#c00';
+                    banner.style.display = 'block';
+                    return;
+                }
+
+                btn.disabled = true;
+                btn.textContent = 'Saving…';
+                banner.style.display = 'none';
+                try {
+                    const payload = { hourlyRate };
+                    if (rating !== undefined && !isNaN(rating)) payload.rating = rating;
+                    const result = await Api.updateProfile(payload);
+                    // Update session cache so refreshed pages reflect new values
+                    const updated = { ...currentUser, hourlyRate: result.user.hourlyRate };
+                    if (result.user.profile) updated.profile = result.user.profile;
+                    Api.setSession(Api.getToken(), updated);
+                    banner.textContent = 'Profile saved successfully!';
+                    banner.style.background = '#d4edda';
+                    banner.style.color = '#155724';
+                    banner.style.display = 'block';
+                    setTimeout(() => { banner.style.display = 'none'; }, 3000);
+                } catch (err) {
+                    banner.textContent = err.message || 'Could not save profile. Please try again.';
+                    banner.style.background = '#ffe4e4';
+                    banner.style.color = '#c00';
+                    banner.style.display = 'block';
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = 'Save Changes';
+                }
+            });
 
             // Calculate and display stats
             calculateStats();

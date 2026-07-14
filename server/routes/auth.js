@@ -26,11 +26,15 @@ router.post('/register', async (req, res) => {
         const {
             username, email, password, role,
             name, title, specialization, expertise,
-            rating, coachUsername, hourlyRate
+            rating, coachUsername, coachUsernames, hourlyRate
         } = req.body;
 
         if (!username || !email || !password || !role) {
             return res.status(400).json({ message: 'Username, email, password and role are required' });
+        }
+
+        if (!/^[^\s@"'<>]+@[^\s@"'<>]+\.[^\s@"'<>]+$/.test(email)) {
+            return res.status(400).json({ message: 'Please provide a valid email address' });
         }
 
         // Check for duplicates
@@ -64,12 +68,15 @@ router.post('/register', async (req, res) => {
             }
         }
 
-        if (role === 'student' && coachUsername) {
-            const coach = await User.findOne({ username: coachUsername, role: 'coach' });
-            if (!coach) {
-                return res.status(400).json({ message: 'Coach not found' });
+        if (role === 'student') {
+            const names = coachUsernames
+                ? (Array.isArray(coachUsernames) ? coachUsernames : [coachUsernames])
+                : (coachUsername ? [coachUsername] : []);
+            if (names.length) {
+                const found = await User.find({ username: { $in: names }, role: 'coach' });
+                if (!found.length) return res.status(400).json({ message: 'No matching coaches found' });
+                userData.coaches = found.map(c => c._id);
             }
-            userData.coaches = [coach._id];
         }
 
         const user = new User(userData);
@@ -93,7 +100,7 @@ router.post('/login', async (req, res) => {
         }
 
         const query = username ? { username } : { email };
-        const user = await User.findOne(query).populate('coaches', 'username profile hourlyRate expertise');
+        const user = await User.findOne(query).populate('coaches', 'username email profile hourlyRate expertise');
 
         if (!user) {
             return res.status(400).json({ message: 'Invalid credentials' });
@@ -117,7 +124,7 @@ router.get('/me', auth, async (req, res) => {
     try {
         const user = await User.findById(req.user.userId)
             .select('-password')
-            .populate('coaches', 'username profile hourlyRate expertise');
+            .populate('coaches', 'username email profile hourlyRate expertise');
         if (!user) return res.status(404).json({ message: 'User not found' });
         res.json(user);
     } catch (err) {

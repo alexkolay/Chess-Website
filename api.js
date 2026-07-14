@@ -147,5 +147,13 @@ const Api = {
 
     deleteLesson(id) {
         return this._fetch(`/api/lessons/${id}`, { method: 'DELETE' });
+    },
+
+    // ── Coach profile ────────────────────────────────────────────────────────
+    updateProfile(data) {
+        return this._fetch('/api/users/profile', {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
     }
 };

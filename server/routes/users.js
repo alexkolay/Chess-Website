@@ -57,8 +57,40 @@ router.post('/add-coach', auth, async (req, res) => {
 
         // Return updated coaches list (populated)
         const updated = await User.findById(req.user.userId)
-            .populate('coaches', 'username profile hourlyRate expertise');
+            .populate('coaches', 'username email profile hourlyRate expertise');
         res.json({ message: 'Coach added successfully', coaches: updated.coaches });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// Update coach profile (hourlyRate and/or FIDE rating) — coach auth required
+router.patch('/profile', auth, async (req, res) => {
+    try {
+        if (req.user.role !== 'coach') {
+            return res.status(403).json({ message: 'Only coaches can update their profile' });
+        }
+        const { hourlyRate, rating } = req.body;
+        const update = {};
+        if (hourlyRate !== undefined) {
+            const rate = Number(hourlyRate);
+            if (isNaN(rate) || rate < 0) return res.status(400).json({ message: 'Invalid hourly rate' });
+            update.hourlyRate = rate;
+        }
+        if (rating !== undefined) {
+            const r = Number(rating);
+            if (isNaN(r) || r < 0) return res.status(400).json({ message: 'Invalid rating' });
+            update['profile.rating'] = r;
+        }
+        if (!Object.keys(update).length) {
+            return res.status(400).json({ message: 'Nothing to update' });
+        }
+        const user = await User.findByIdAndUpdate(
+            req.user.userId,
+            { $set: update },
+            { new: true, select: '-password' }
+        );
+        res.json({ message: 'Profile updated', user });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
