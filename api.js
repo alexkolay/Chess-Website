@@ -5,30 +5,51 @@ const API_BASE = 'http://localhost:3001';
 
 const Api = {
     // ── Session helpers ──────────────────────────────────────────────────────
+    // Reads check sessionStorage (scoped to this one tab/window) first, falling
+    // back to localStorage (shared across the whole browser profile). Writes go
+    // to both. A fresh tab with no session of its own inherits whatever's in
+    // localStorage — normal "stay logged in" behavior. But the moment a window
+    // logs in, its sessionStorage is set and that window is independent from then
+    // on, so separate regular windows can hold separate logged-in accounts
+    // without one login clobbering another.
+    _read(key) {
+        return sessionStorage.getItem(key) ?? localStorage.getItem(key);
+    },
+
+    _write(key, value) {
+        sessionStorage.setItem(key, value);
+        localStorage.setItem(key, value);
+    },
+
+    _clear(key) {
+        sessionStorage.removeItem(key);
+        localStorage.removeItem(key);
+    },
+
     getToken() {
-        return localStorage.getItem('authToken');
+        return this._read('authToken');
     },
 
     setSession(token, user) {
-        localStorage.setItem('authToken', token);
-        localStorage.setItem('currentUser', JSON.stringify(user));
+        this._write('authToken', token);
+        this._write('currentUser', JSON.stringify(user));
         // Legacy keys kept so existing page logic still works during migration
-        localStorage.setItem('isLoggedIn', 'true');
-        localStorage.setItem('userType', user.role);
-        localStorage.setItem('username', user.username);
+        this._write('isLoggedIn', 'true');
+        this._write('userType', user.role);
+        this._write('username', user.username);
     },
 
     clearSession() {
         ['authToken', 'currentUser', 'isLoggedIn', 'userType', 'username',
-         'coachData', 'studentData'].forEach(k => localStorage.removeItem(k));
+         'coachData', 'studentData'].forEach(k => this._clear(k));
     },
 
     getCurrentUser() {
-        try { return JSON.parse(localStorage.getItem('currentUser')); } catch { return null; }
+        try { return JSON.parse(this._read('currentUser')); } catch { return null; }
     },
 
     isLoggedIn() {
-        return !!localStorage.getItem('authToken');
+        return !!this.getToken();
     },
 
     requireAuth(redirectTo = 'login.html') {

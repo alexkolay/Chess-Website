@@ -508,12 +508,18 @@
             }
 
             // Helper: convert "Monday" + current week offset → "YYYY-MM-DD"
+            // Uses local date components, NOT toISOString() — toISOString() converts
+            // to UTC first, which rolls the date back by one in any timezone ahead of
+            // UTC (e.g. IST) since these are local midnight Date objects.
             function getDateForDay(dayName) {
                 const idx = ['Monday','Tuesday','Wednesday','Thursday','Friday'].indexOf(dayName);
                 if (idx < 0) return null;
                 const d = new Date(getSelectedWeekDate());
                 d.setDate(d.getDate() + idx);
-                return d.toISOString().slice(0, 10);
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${y}-${m}-${day}`;
             }
 
             // Helper: convert "9:00 AM" → "09:00"
