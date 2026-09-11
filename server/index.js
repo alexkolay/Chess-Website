@@ -5,11 +5,9 @@ require('dotenv').config();
 
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost/chess-coaching', {
     useNewUrlParser: true,
     useUnifiedTopology: true
@@ -26,7 +24,6 @@ db.once('open', () => {
 const path = require('path');
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/lessons', require('./routes/lessons'));
 app.use('/api/schedules', require('./routes/schedules'));

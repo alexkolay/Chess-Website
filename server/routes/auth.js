@@ -23,7 +23,6 @@ function buildUserResponse(user) {
     };
 }
 
-// Register
 router.post('/register', async (req, res) => {
     try {
         const {
@@ -40,7 +39,6 @@ router.post('/register', async (req, res) => {
             return res.status(400).json({ message: 'Please provide a valid email address' });
         }
 
-        // Check for duplicates
         const existing = await User.findOne({ $or: [{ email }, { username }] });
         if (existing) {
             const field = existing.email === email ? 'Email' : 'Username';
@@ -122,7 +120,6 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// Get current logged-in user
 router.get('/me', auth, async (req, res) => {
     try {
         const user = await User.findById(req.user.userId)

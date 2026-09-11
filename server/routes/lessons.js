@@ -4,7 +4,7 @@ const Schedule = require('../models/Schedule');
 const User = require('../models/User');
 const { auth, isCoach, isStudent } = require('../middleware/auth');
 
-// ── Conflict detection ────────────────────────────────────────────────────────
+// Conflict detection
 // Returns the first lesson matching `filter` that overlaps the given time range, or null.
 async function findConflict(filter, dateTime, durationMinutes, excludeId = null) {
     const newStart = new Date(dateTime);
@@ -40,7 +40,6 @@ function coachConflictFilter(coachId) {
     return { coach: coachId, status: 'scheduled' };
 }
 
-// ── GET all lessons for the current user ──────────────────────────────────────
 router.get('/', auth, async (req, res) => {
     try {
         const lessons = await Lesson.find({
@@ -54,7 +53,7 @@ router.get('/', auth, async (req, res) => {
     }
 });
 
-// ── GET pending lesson requests for the logged-in coach ───────────────────────
+// Pending lesson requests in the logged-in coach's own inbox
 router.get('/pending', [auth, isCoach], async (req, res) => {
     try {
         const lessons = await Lesson.find({
@@ -69,7 +68,7 @@ router.get('/pending', [auth, isCoach], async (req, res) => {
     }
 });
 
-// ── POST coach creates a lesson directly (status = scheduled) ─────────────────
+// Coach creates a lesson directly, bypassing the request/accept flow below (status = scheduled)
 router.post('/', [auth, isCoach], async (req, res) => {
     try {
         const { student, dateTime, duration, topic, price, notes, meetingLink } = req.body;
@@ -101,7 +100,6 @@ router.post('/', [auth, isCoach], async (req, res) => {
         });
         await lesson.save();
 
-        // Mark the matching schedule slot as booked
         const dateStr = new Date(dateTime).toISOString().slice(0, 10);
         const timeStr = new Date(dateTime).toISOString().slice(11, 16);
         await Schedule.findOneAndUpdate(
@@ -115,7 +113,7 @@ router.post('/', [auth, isCoach], async (req, res) => {
     }
 });
 
-// ── POST student requests a lesson (status = pending) ─────────────────────────
+// Student requests a lesson (status = pending)
 // Body: { coachId, date "YYYY-MM-DD", time "HH:MM", duration (min), topic, notes }
 router.post('/request', [auth, isStudent], async (req, res) => {
     try {
@@ -170,7 +168,6 @@ router.post('/request', [auth, isStudent], async (req, res) => {
     }
 });
 
-// ── PATCH update lesson status ────────────────────────────────────────────────
 // Coach accepts (pending→scheduled) or either party cancels.
 router.patch('/:id/status', auth, async (req, res) => {
     try {
@@ -215,7 +212,6 @@ router.patch('/:id/status', auth, async (req, res) => {
         lesson.status = status;
         await lesson.save();
 
-        // When cancelled, free the schedule slot back to available
         if (status === 'cancelled') {
             await Schedule.findOneAndUpdate(
                 { coach: lesson.coach, 'slots.lesson': lesson._id },
@@ -229,7 +225,6 @@ router.patch('/:id/status', auth, async (req, res) => {
     }
 });
 
-// ── DELETE a lesson (coach only) ──────────────────────────────────────────────
 router.delete('/:id', [auth, isCoach], async (req, res) => {
     try {
         const lesson = await Lesson.findOneAndDelete({
@@ -238,7 +233,6 @@ router.delete('/:id', [auth, isCoach], async (req, res) => {
         });
         if (!lesson) return res.status(404).json({ message: 'Lesson not found' });
 
-        // Free the schedule slot
         await Schedule.findOneAndUpdate(
             { coach: req.user.userId, 'slots.lesson': lesson._id },
             { $set: { 'slots.$.status': 'available', 'slots.$.lesson': null, 'slots.$.studentName': null } }

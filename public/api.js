@@ -6,7 +6,6 @@
 const API_BASE = '';
 
 const Api = {
-    // Session helpers
     // Prefer the current tab's session, then fall back to persistent login data.
     _read(key) {
         return sessionStorage.getItem(key) ?? localStorage.getItem(key);
@@ -57,7 +56,6 @@ const Api = {
         window.location.href = 'login.html';
     },
 
-    // Core fetch wrapper
     async _fetch(path, options = {}) {
         const token = this.getToken();
         const headers = { 'Content-Type': 'application/json' };
@@ -128,7 +126,6 @@ const Api = {
         return this._fetch('/api/lessons');
     },
 
-    // Pending requests in the coach's inbox
     getPendingRequests() {
         return this._fetch('/api/lessons/pending');
     },
@@ -140,7 +137,6 @@ const Api = {
         });
     },
 
-    // Student requests a lesson from a coach's available slot
     requestLesson(data) {
         return this._fetch('/api/lessons/request', {
             method: 'POST',
@@ -159,7 +155,6 @@ const Api = {
         return this._fetch(`/api/lessons/${id}`, { method: 'DELETE' });
     },
 
-    // Coach profile
     updateProfile(data) {
         return this._fetch('/api/users/profile', {
             method: 'PATCH',

@@ -55,7 +55,6 @@ router.post('/add-coach', auth, async (req, res) => {
         student.coaches.push(coach._id);
         await student.save();
 
-        // Return updated coaches list (populated)
         const updated = await User.findById(req.user.userId)
             .populate('coaches', 'username email profile hourlyRate expertise');
         res.json({ message: 'Coach added successfully', coaches: updated.coaches });
