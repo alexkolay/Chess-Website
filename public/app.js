@@ -13,32 +13,6 @@ document.querySelectorAll('.navbar__links, .navbar__btn .button').forEach(link =
     });
 });
 
-// Demo board — freely movable, no game-over/legality gating beyond chess.js's own move validation
-window.addEventListener('DOMContentLoaded', function() {
-    const game = new Chess();
-
-    const config = {
-        draggable: true,
-        position: 'start',
-        pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
-        onDrop,
-        onSnapEnd
-    };
-
-    const board = Chessboard('board', config);
-
-    function onDrop(source, target) {
-        const move = game.move({ from: source, to: target, promotion: 'q' });
-        if (move === null) return 'snapback';
-    }
-
-    function onSnapEnd() {
-        board.position(game.fen());
-    }
-
-    window.addEventListener('resize', () => board.resize());
-});
-
 // Smooth scrolling for navigation links
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function(e) {
