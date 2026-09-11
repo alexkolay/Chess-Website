@@ -1,17 +1,13 @@
 // Chess Coaching Platform — central API helper
 // Include this file before page-specific scripts: <script src="api.js"></script>
 
-const API_BASE = 'http://localhost:3001';
+// Empty string = same-origin requests. Works locally and on any deployment
+// (e.g. Replit) since the API is served from the same host as the frontend.
+const API_BASE = '';
 
 const Api = {
-    // ── Session helpers ──────────────────────────────────────────────────────
-    // Reads check sessionStorage (scoped to this one tab/window) first, falling
-    // back to localStorage (shared across the whole browser profile). Writes go
-    // to both. A fresh tab with no session of its own inherits whatever's in
-    // localStorage — normal "stay logged in" behavior. But the moment a window
-    // logs in, its sessionStorage is set and that window is independent from then
-    // on, so separate regular windows can hold separate logged-in accounts
-    // without one login clobbering another.
+    // Session helpers
+    // Prefer the current tab's session, then fall back to persistent login data.
     _read(key) {
         return sessionStorage.getItem(key) ?? localStorage.getItem(key);
     },
@@ -61,7 +57,7 @@ const Api = {
         window.location.href = 'login.html';
     },
 
-    // ── Core fetch wrapper ───────────────────────────────────────────────────
+    // Core fetch wrapper
     async _fetch(path, options = {}) {
         const token = this.getToken();
         const headers = { 'Content-Type': 'application/json' };
@@ -73,7 +69,7 @@ const Api = {
         return data;
     },
 
-    // ── Auth ─────────────────────────────────────────────────────────────────
+    // Auth
     async login(username, password) {
         const data = await this._fetch('/api/auth/login', {
             method: 'POST',
@@ -95,14 +91,7 @@ const Api = {
         return this._fetch('/api/auth/me');
     },
 
-    resetPassword(username, newPassword) {
-        return this._fetch('/api/auth/reset-password', {
-            method: 'POST',
-            body: JSON.stringify({ username, newPassword })
-        });
-    },
-
-    // ── Users ────────────────────────────────────────────────────────────────
+    // Users
     getCoaches() {
         return this._fetch('/api/users/coaches');
     },
@@ -118,7 +107,7 @@ const Api = {
         });
     },
 
-    // ── Schedules ────────────────────────────────────────────────────────────
+    // Schedules
     getSchedule(coachId) {
         return this._fetch(`/api/schedules/coach/${coachId}`);
     },
@@ -134,7 +123,7 @@ const Api = {
         return this._fetch(`/api/schedules/available/${coachId}`);
     },
 
-    // ── Lessons ──────────────────────────────────────────────────────────────
+    // Lessons
     getLessons() {
         return this._fetch('/api/lessons');
     },
@@ -170,7 +159,7 @@ const Api = {
         return this._fetch(`/api/lessons/${id}`, { method: 'DELETE' });
     },
 
-    // ── Coach profile ────────────────────────────────────────────────────────
+    // Coach profile
     updateProfile(data) {
         return this._fetch('/api/users/profile', {
             method: 'PATCH',

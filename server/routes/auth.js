@@ -4,7 +4,10 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { auth } = require('../middleware/auth');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET is required');
+}
 const TOKEN_EXPIRY = '7d';
 
 function buildUserResponse(user) {
@@ -127,24 +130,6 @@ router.get('/me', auth, async (req, res) => {
             .populate('coaches', 'username email profile hourlyRate expertise');
         if (!user) return res.status(404).json({ message: 'User not found' });
         res.json(user);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-});
-
-// Update password (replaces the localStorage-only reset flow)
-router.post('/reset-password', async (req, res) => {
-    try {
-        const { username, newPassword } = req.body;
-        if (!username || !newPassword) {
-            return res.status(400).json({ message: 'Username and new password required' });
-        }
-        const user = await User.findOne({ username });
-        if (!user) return res.status(404).json({ message: 'Username not found' });
-
-        user.password = await bcrypt.hash(newPassword, 10);
-        await user.save();
-        res.json({ message: 'Password updated successfully' });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }

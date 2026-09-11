@@ -1,5 +1,10 @@
 const jwt = require('jsonwebtoken');
 
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET is required');
+}
+
 const auth = (req, res, next) => {
     try {
         const authHeader = req.header('Authorization');
@@ -7,7 +12,7 @@ const auth = (req, res, next) => {
             return res.status(401).json({ message: 'Authentication failed' });
         }
         const token = authHeader.replace('Bearer ', '');
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+        const decoded = jwt.verify(token, JWT_SECRET);
         req.user = decoded;
         next();
     } catch (err) {

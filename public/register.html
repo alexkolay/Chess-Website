@@ -184,7 +184,19 @@
                         btn.dataset.coachUsername = coach.username;
                         btn.dataset.selected = 'false';
                         btn.style.cssText = 'border:2px solid #4ecdc4;border-radius:8px;padding:1rem;background:#fff;cursor:pointer;min-width:200px;transition:background 0.2s,border-color 0.2s;text-align:left;';
-                        btn.innerHTML = `<strong>${name}</strong><br>Title: ${title}<br>Specialization: ${spec}${rate ? `<br>${rate}` : ''}`;
+                        // Built via DOM APIs, not innerHTML — coach name/title/expertise
+                        // are user-supplied at registration.
+                        const nameEl = document.createElement('strong');
+                        nameEl.textContent = name;
+                        btn.appendChild(nameEl);
+                        btn.appendChild(document.createElement('br'));
+                        btn.appendChild(document.createTextNode(`Title: ${title}`));
+                        btn.appendChild(document.createElement('br'));
+                        btn.appendChild(document.createTextNode(`Specialization: ${spec}`));
+                        if (rate) {
+                            btn.appendChild(document.createElement('br'));
+                            btn.appendChild(document.createTextNode(rate));
+                        }
                         btn.onclick = function() {
                             const isSelected = btn.dataset.selected === 'true';
                             btn.dataset.selected = isSelected ? 'false' : 'true';

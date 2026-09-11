@@ -1,6 +1,6 @@
 /**
  * Seed script — run once to create the default coach account in MongoDB.
- * Usage: node server/seed.js
+ * Usage: SEED_COACH_PASSWORD=... node server/seed.js
  */
 require('dotenv').config();
 const mongoose = require('mongoose');
@@ -10,6 +10,11 @@ const User = require('./models/User');
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost/chess-coaching';
 
 async function seed() {
+    const seedPassword = process.env.SEED_COACH_PASSWORD;
+    if (!seedPassword) {
+        throw new Error('SEED_COACH_PASSWORD is required');
+    }
+
     await mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
     console.log('Connected to MongoDB');
 
@@ -19,7 +24,7 @@ async function seed() {
         process.exit(0);
     }
 
-    const hashedPassword = await bcrypt.hash('FideMaster2022!', 10);
+    const hashedPassword = await bcrypt.hash(seedPassword, 10);
 
     await User.create({
         username:   'chessboss2020',

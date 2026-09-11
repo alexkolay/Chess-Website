@@ -21,9 +21,10 @@ db.once('open', () => {
     console.log('Connected to MongoDB');
 });
 
-// Serve static HTML/CSS/JS files from the project root
+// Serve static HTML/CSS/JS files from public/ — not the repo root, which also
+// contains server code, package files, and env config that shouldn't be web-accessible.
 const path = require('path');
-app.use(express.static(path.join(__dirname, '..')));
+app.use(express.static(path.join(__dirname, '../public')));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -31,7 +32,7 @@ app.use('/api/lessons', require('./routes/lessons'));
 app.use('/api/schedules', require('./routes/schedules'));
 app.use('/api/users', require('./routes/users'));
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 }); 

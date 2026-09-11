@@ -86,25 +86,6 @@
                     </form>
 
                     <p class="register-link" id="register-link">Don't have an account? <a href="register.html">Register here</a></p>
-                    <button class="cta-button secondary" id="forgot-password-link" style="width: 100%; margin-top: 1rem;">Forgot Password?</button>
-                    <form id="reset-password-form" class="reset-form" style="display:none; margin-top: 2rem;">
-                        <h2>Reset Password</h2>
-                        <div class="form-group">
-                            <label for="reset-username">Username</label>
-                            <input type="text" id="reset-username" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="reset-new-password">New Password</label>
-                            <input type="password" id="reset-new-password" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="reset-confirm-password">Confirm New Password</label>
-                            <input type="password" id="reset-confirm-password" required>
-                        </div>
-                        <div id="reset-password-message" class="error-message"></div>
-                        <button type="submit" class="cta-button primary">Reset Password</button>
-                        <button type="button" id="cancel-reset" class="cta-button secondary" style="margin-left: 1rem;">Cancel</button>
-                    </form>
                 </div>
             </div>
         </section>
@@ -178,61 +159,6 @@
                 }
             });
 
-            // ── Forgot / reset password ───────────────────────────────────────
-            const forgotLink  = document.getElementById('forgot-password-link');
-            const resetForm   = document.getElementById('reset-password-form');
-            const resetMessage = document.getElementById('reset-password-message');
-            const cancelReset = document.getElementById('cancel-reset');
-
-            forgotLink.addEventListener('click', function() {
-                document.querySelectorAll('.login-form').forEach(f => f.style.display = 'none');
-                forgotLink.style.display = 'none';
-                document.getElementById('register-link').style.display = 'none';
-                resetForm.style.display = 'block';
-                resetMessage.textContent = '';
-            });
-
-            cancelReset.addEventListener('click', function() {
-                resetForm.style.display = 'none';
-                document.querySelectorAll('.login-form').forEach(f => f.style.display = '');
-                forgotLink.style.display = '';
-                document.getElementById('register-link').style.display = '';
-            });
-
-            resetForm.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                const username    = document.getElementById('reset-username').value.trim();
-                const newPassword = document.getElementById('reset-new-password').value;
-                const confirmPwd  = document.getElementById('reset-confirm-password').value;
-
-                if (!username || !newPassword || !confirmPwd) {
-                    resetMessage.style.color = '';
-                    resetMessage.textContent = 'Please fill in all fields.';
-                    return;
-                }
-                if (newPassword !== confirmPwd) {
-                    resetMessage.style.color = '';
-                    resetMessage.textContent = 'Passwords do not match.';
-                    return;
-                }
-
-                try {
-                    await Api.resetPassword(username, newPassword);
-                    resetMessage.style.color = 'green';
-                    resetMessage.textContent = 'Password reset successfully! You can now log in.';
-                    setTimeout(() => {
-                        resetForm.style.display = 'none';
-                        document.querySelectorAll('.login-form').forEach(f => f.style.display = '');
-                        forgotLink.style.display = '';
-                        document.getElementById('register-link').style.display = '';
-                        resetMessage.style.color = '';
-                        resetMessage.textContent = '';
-                    }, 2000);
-                } catch (err) {
-                    resetMessage.style.color = '';
-                    resetMessage.textContent = err.message || 'Reset failed. Please try again.';
-                }
-            });
         });
     </script>
 </body>

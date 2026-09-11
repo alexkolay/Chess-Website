@@ -6,7 +6,7 @@ const { auth } = require('../middleware/auth');
 router.get('/coaches', async (req, res) => {
     try {
         const coaches = await User.find({ role: 'coach' })
-            .select('-password -createdAt')
+            .select('username email profile hourlyRate expertise')
             .lean();
 
         // Count students per coach — unwind the coaches array to group by each coach ID

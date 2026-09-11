@@ -25,16 +25,15 @@ These steps were completed during setup and do not need to be repeated:
 |------|---------|--------|
 | Install dependencies | `npm install` | Done |
 | Install MongoDB | Binary at `~/mongodb/bin/mongod` | Done |
-| Create `.env` | `MONGODB_URI`, `JWT_SECRET`, `PORT=3001` | Done |
-| Seed coach account | `node server/seed.js` | Done |
+| Create `.env` | `MONGODB_URI`, `JWT_SECRET`, `PORT=3001`, `SEED_COACH_PASSWORD` | Done |
+| Seed coach account | `SEED_COACH_PASSWORD=... node server/seed.js` | Done |
 
 ---
 
 ## Default Accounts
 
-| Role | Username | Password |
-|------|----------|----------|
-| Coach (Alex Kolay, FM) | `chessboss2020` | `FideMaster2022!` |
+A demo coach account (`chessboss2020`) is seeded via `server/seed.js`, using the
+password set in `SEED_COACH_PASSWORD` (see `.env`, not committed to the repo).
 
 Students can self-register at `register.html`.
 
@@ -48,7 +47,7 @@ Browser (any .html page)
         ▼
     api.js  →  Express API (port 3001, JWT auth)
                     │
-                    ├── /api/auth      (login, register, me, reset-password)
+                    ├── /api/auth      (login, register, me)
                     ├── /api/users     (coaches list, user by id)
                     ├── /api/lessons   (CRUD, conflict detection, pending inbox)
                     └── /api/schedules (coach availability, slot booking)
@@ -86,4 +85,4 @@ All data lives in MongoDB. `localStorage` is used only for the JWT session token
 
 **"Not authorized" errors:** Your JWT may have expired (7-day expiry). Log out and log back in.
 
-**Reset everything:** `node server/seed.js` re-creates the coach account if deleted.
+**Reset everything:** `SEED_COACH_PASSWORD=... node server/seed.js` re-creates the coach account if deleted.

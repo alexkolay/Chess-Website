@@ -391,6 +391,14 @@
                 document.getElementById('avg-rating').textContent = avg;
             }
 
+            // Coach name/title/email/expertise are user-supplied at registration —
+            // escape before interpolating into innerHTML below.
+            function escapeHtml(str) {
+                const div = document.createElement('div');
+                div.textContent = str ?? '';
+                return div.innerHTML;
+            }
+
             // ── Coach card renderer ───────────────────────────────────────────
             function renderCoaches(list) {
                 const grid = document.getElementById('coaches-grid');
@@ -413,16 +421,16 @@
                     const isOwner = coach.username === 'chessboss2020';
                     const primaryLink = isOwner
                         ? `<a href="coaching.html" class="coach-link primary">View Profile</a>`
-                        : `<a href="mailto:${coach.email}" class="coach-link primary">Contact</a>`;
+                        : `<a href="mailto:${escapeHtml(coach.email)}" class="coach-link primary">Contact</a>`;
 
                     const card = document.createElement('div');
                     card.className = 'coach-card';
                     card.innerHTML = `
                         <div class="coach-header">
-                            <div class="coach-avatar">${initials}</div>
+                            <div class="coach-avatar">${escapeHtml(initials)}</div>
                             <div class="coach-info">
-                                <h3>${coach.name}</h3>
-                                <div class="coach-title">${coach.title}</div>
+                                <h3>${escapeHtml(coach.name)}</h3>
+                                <div class="coach-title">${escapeHtml(coach.title)}</div>
                                 <div class="coach-rating">
                                     <span class="stars">★★★★★</span>
                                     <span>${coach.rating} FIDE</span>
@@ -432,7 +440,7 @@
                         <div class="coach-expertise">
                             <strong>Expertise:</strong>
                             <div class="expertise-tags">
-                                ${coach.expertise.map(e => `<span class="expertise-tag">${e}</span>`).join('')}
+                                ${coach.expertise.map(e => `<span class="expertise-tag">${escapeHtml(e)}</span>`).join('')}
                             </div>
                         </div>
                         <div class="coach-stats">
