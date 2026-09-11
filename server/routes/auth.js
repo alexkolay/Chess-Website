@@ -65,7 +65,7 @@ router.post('/register', async (req, res) => {
             if (expertise) {
                 userData.expertise = Array.isArray(expertise) ? expertise : [expertise];
             } else if (specialization) {
-                userData.expertise = specialization.split(',').map(s => s.trim()).filter(Boolean);
+                userData.expertise = specialization.split(',').map(item => item.trim()).filter(Boolean);
             }
         }
 
@@ -76,7 +76,7 @@ router.post('/register', async (req, res) => {
             if (names.length) {
                 const found = await User.find({ username: { $in: names }, role: 'coach' });
                 if (!found.length) return res.status(400).json({ message: 'No matching coaches found' });
-                userData.coaches = found.map(c => c._id);
+                userData.coaches = found.map(coach => coach._id);
             }
         }
 

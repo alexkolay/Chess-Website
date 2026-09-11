@@ -19,8 +19,6 @@ db.once('open', () => {
     console.log('Connected to MongoDB');
 });
 
-// Serve static HTML/CSS/JS files from public/ — not the repo root, which also
-// contains server code, package files, and env config that shouldn't be web-accessible.
 const path = require('path');
 app.use(express.static(path.join(__dirname, '../public')));
 

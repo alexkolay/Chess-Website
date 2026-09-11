@@ -508,18 +508,15 @@
             }
 
             // Helper: convert "Monday" + current week offset → "YYYY-MM-DD"
-            // Uses local date components, NOT toISOString() — toISOString() converts
-            // to UTC first, which rolls the date back by one in any timezone ahead of
-            // UTC (e.g. IST) since these are local midnight Date objects.
             function getDateForDay(dayName) {
                 const idx = ['Monday','Tuesday','Wednesday','Thursday','Friday'].indexOf(dayName);
                 if (idx < 0) return null;
-                const d = new Date(getSelectedWeekDate());
-                d.setDate(d.getDate() + idx);
-                const y = d.getFullYear();
-                const m = String(d.getMonth() + 1).padStart(2, '0');
-                const day = String(d.getDate()).padStart(2, '0');
-                return `${y}-${m}-${day}`;
+                const date = new Date(getSelectedWeekDate());
+                date.setDate(date.getDate() + idx);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const dayOfMonth = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${dayOfMonth}`;
             }
 
             // Helper: convert "9:00 AM" → "09:00"
@@ -565,8 +562,6 @@
             renderNotifications();
 
             // Populate "Contact Your Coach" card
-            // Built via DOM APIs (not innerHTML) since coach name/title/email are
-            // user-supplied at registration and must never be interpreted as HTML.
             (function renderContactCoaches() {
                 const container = document.getElementById('contact-coaches-list');
                 container.innerHTML = '';

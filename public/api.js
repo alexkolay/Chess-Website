@@ -1,12 +1,9 @@
 // Chess Coaching Platform — central API helper
 // Include this file before page-specific scripts: <script src="api.js"></script>
 
-// Empty string = same-origin requests. Works locally and on any deployment
-// (e.g. Replit) since the API is served from the same host as the frontend.
 const API_BASE = '';
 
 const Api = {
-    // Prefer the current tab's session, then fall back to persistent login data.
     _read(key) {
         return sessionStorage.getItem(key) ?? localStorage.getItem(key);
     },
@@ -36,7 +33,7 @@ const Api = {
 
     clearSession() {
         ['authToken', 'currentUser', 'isLoggedIn', 'userType', 'username',
-         'coachData', 'studentData'].forEach(k => this._clear(k));
+         'coachData', 'studentData'].forEach(key => this._clear(key));
     },
 
     getCurrentUser() {

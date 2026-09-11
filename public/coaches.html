@@ -384,15 +384,13 @@
             // ── Stats bar ─────────────────────────────────────────────────────
             function updateStats(coaches) {
                 let totalStudents = 0, totalRating = 0;
-                coaches.forEach(c => { totalStudents += c.stats.students; totalRating += c.rating; });
+                coaches.forEach(coach => { totalStudents += coach.stats.students; totalRating += coach.rating; });
                 const avg = coaches.length ? Math.round(totalRating / coaches.length) : 0;
                 document.getElementById('total-coaches-count').textContent = coaches.length;
                 document.getElementById('total-students-count').textContent = totalStudents;
                 document.getElementById('avg-rating').textContent = avg;
             }
 
-            // Coach name/title/email/expertise are user-supplied at registration —
-            // escape before interpolating into innerHTML below.
             function escapeHtml(str) {
                 const div = document.createElement('div');
                 div.textContent = str ?? '';
@@ -440,7 +438,7 @@
                         <div class="coach-expertise">
                             <strong>Expertise:</strong>
                             <div class="expertise-tags">
-                                ${coach.expertise.map(e => `<span class="expertise-tag">${escapeHtml(e)}</span>`).join('')}
+                                ${coach.expertise.map(skill => `<span class="expertise-tag">${escapeHtml(skill)}</span>`).join('')}
                             </div>
                         </div>
                         <div class="coach-stats">
@@ -503,10 +501,10 @@
             // ── Search ────────────────────────────────────────────────────────
             document.getElementById('coach-search').addEventListener('input', function() {
                 const term = this.value.toLowerCase();
-                filteredCoaches = coaches.filter(c =>
-                    c.name.toLowerCase().includes(term) ||
-                    c.title.toLowerCase().includes(term) ||
-                    c.expertise.some(e => e.toLowerCase().includes(term))
+                filteredCoaches = coaches.filter(coach =>
+                    coach.name.toLowerCase().includes(term) ||
+                    coach.title.toLowerCase().includes(term) ||
+                    coach.expertise.some(skill => skill.toLowerCase().includes(term))
                 );
                 renderCoaches(filteredCoaches);
             });
@@ -519,7 +517,7 @@
                     const filter = this.dataset.filter;
                     filteredCoaches = filter === 'all'
                         ? [...coaches]
-                        : coaches.filter(c => c.expertise.some(e => e.toLowerCase().includes(filter.toLowerCase())));
+                        : coaches.filter(coach => coach.expertise.some(skill => skill.toLowerCase().includes(filter.toLowerCase())));
                     renderCoaches(filteredCoaches);
                 });
             });

@@ -17,7 +17,7 @@ router.get('/coaches', async (req, res) => {
         ]);
 
         const countMap = {};
-        studentCounts.forEach(c => { countMap[c._id.toString()] = c.count; });
+        studentCounts.forEach(entry => { countMap[entry._id.toString()] = entry.count; });
 
         const result = coaches.map(coach => ({
             ...coach,
@@ -77,9 +77,9 @@ router.patch('/profile', auth, async (req, res) => {
             update.hourlyRate = rate;
         }
         if (rating !== undefined) {
-            const r = Number(rating);
-            if (isNaN(r) || r < 0) return res.status(400).json({ message: 'Invalid rating' });
-            update['profile.rating'] = r;
+            const parsedRating = Number(rating);
+            if (isNaN(parsedRating) || parsedRating < 0) return res.status(400).json({ message: 'Invalid rating' });
+            update['profile.rating'] = parsedRating;
         }
         if (!Object.keys(update).length) {
             return res.status(400).json({ message: 'Nothing to update' });

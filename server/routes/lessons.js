@@ -4,8 +4,8 @@ const Schedule = require('../models/Schedule');
 const User = require('../models/User');
 const { auth, isCoach, isStudent } = require('../middleware/auth');
 
-// Conflict detection
-// Returns the first lesson matching `filter` that overlaps the given time range, or null.
+const CONFLICT_LOOKBACK_MS = 12 * 3600000;
+
 async function findConflict(filter, dateTime, durationMinutes, excludeId = null) {
     const newStart = new Date(dateTime);
     const newEnd   = new Date(newStart.getTime() + durationMinutes * 60000);
@@ -13,29 +13,23 @@ async function findConflict(filter, dateTime, durationMinutes, excludeId = null)
     const candidates = await Lesson.find({
         ...filter,
         dateTime: {
-            $gte: new Date(newStart.getTime() - 12 * 3600000), // 12 h look-back window
+            $gte: new Date(newStart.getTime() - CONFLICT_LOOKBACK_MS),
             $lte: newEnd
         },
         ...(excludeId ? { _id: { $ne: excludeId } } : {})
     });
 
-    // Precise overlap: two intervals overlap when start1 < end2 AND end1 > start2
-    return candidates.find(l => {
-        const lStart = new Date(l.dateTime);
-        const lEnd   = new Date(lStart.getTime() + l.duration * 60000);
-        return lStart < newEnd && lEnd > newStart;
+    return candidates.find(existingLesson => {
+        const existingStart = new Date(existingLesson.dateTime);
+        const existingEnd   = new Date(existingStart.getTime() + existingLesson.duration * 60000);
+        return existingStart < newEnd && existingEnd > newStart;
     }) || null;
 }
 
-// A student conflict blocks pending OR scheduled lessons — a student can't be in
-// two places at once, even if one of them hasn't been confirmed by a coach yet.
 function studentConflictFilter(studentId) {
     return { student: studentId, status: { $in: ['pending', 'scheduled'] } };
 }
 
-// A coach conflict only blocks other CONFIRMED lessons. Multiple students may
-// have overlapping *pending* requests with the same coach at once — that's
-// expected — but the coach can only ever have one scheduled lesson at a time.
 function coachConflictFilter(coachId) {
     return { coach: coachId, status: 'scheduled' };
 }
@@ -53,7 +47,6 @@ router.get('/', auth, async (req, res) => {
     }
 });
 
-// Pending lesson requests in the logged-in coach's own inbox
 router.get('/pending', [auth, isCoach], async (req, res) => {
     try {
         const lessons = await Lesson.find({
@@ -68,7 +61,6 @@ router.get('/pending', [auth, isCoach], async (req, res) => {
     }
 });
 
-// Coach creates a lesson directly, bypassing the request/accept flow below (status = scheduled)
 router.post('/', [auth, isCoach], async (req, res) => {
     try {
         const { student, dateTime, duration, topic, price, notes, meetingLink } = req.body;
@@ -113,20 +105,17 @@ router.post('/', [auth, isCoach], async (req, res) => {
     }
 });
 
-// Student requests a lesson (status = pending)
-// Body: { coachId, date "YYYY-MM-DD", time "HH:MM", duration (min), topic, notes }
 router.post('/request', [auth, isStudent], async (req, res) => {
     try {
         const { coachId, date, time, duration, topic, notes } = req.body;
-        const dur      = Number(duration) || 60;
+        const durationMinutes = Number(duration) || 60;
         const dateTime = new Date(`${date}T${time.slice(0, 5)}:00`);
 
         if (isNaN(dateTime)) {
             return res.status(400).json({ message: 'Invalid date or time' });
         }
 
-        // Check the student has no conflicting lesson across ALL coaches
-        const conflict = await findConflict(studentConflictFilter(req.user.userId), dateTime, dur);
+        const conflict = await findConflict(studentConflictFilter(req.user.userId), dateTime, durationMinutes);
         if (conflict) {
             return res.status(409).json({
                 message: `You already have a ${conflict.status} lesson at this time`
@@ -137,13 +126,13 @@ router.post('/request', [auth, isStudent], async (req, res) => {
         if (!coach || coach.role !== 'coach') {
             return res.status(404).json({ message: 'Coach not found' });
         }
-        const price = Math.round((coach.hourlyRate || 50) * (dur / 60));
+        const price = Math.round((coach.hourlyRate || 50) * (durationMinutes / 60));
 
         const lesson = new Lesson({
             coach: coachId,
             student: req.user.userId,
             dateTime,
-            duration: dur,
+            duration: durationMinutes,
             topic: topic || 'General coaching',
             notes,
             price,
@@ -151,7 +140,6 @@ router.post('/request', [auth, isStudent], async (req, res) => {
         });
         await lesson.save();
 
-        // Lock the slot if the coach has set one up; safe to skip if not
         await Schedule.findOneAndUpdate(
             {
                 coach: coachId,
@@ -168,7 +156,6 @@ router.post('/request', [auth, isStudent], async (req, res) => {
     }
 });
 
-// Coach accepts (pending→scheduled) or either party cancels.
 router.patch('/:id/status', auth, async (req, res) => {
     try {
         const { status } = req.body;
@@ -185,10 +172,6 @@ router.patch('/:id/status', auth, async (req, res) => {
             return res.status(403).json({ message: 'Only the coach can accept lesson requests' });
         }
 
-        // Re-check for conflicts when the coach accepts. Two things can have
-        // changed since this request was made: another coach could have booked
-        // this student, or (more commonly) the coach could have already accepted
-        // a different student's overlapping request for this same slot.
         if (status === 'scheduled' && lesson.status === 'pending') {
             const studentConflict = await findConflict(
                 studentConflictFilter(lesson.student), lesson.dateTime, lesson.duration, lesson._id
