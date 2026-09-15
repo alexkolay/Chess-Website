@@ -136,6 +136,10 @@ npm test
 
 If you're adding a new route or changing how bookings/conflicts work, it's worth adding a case here — it's much faster than manually registering test accounts through the UI every time.
 
+## Acknowledgments
+
+The backend test suite under [`tests/`](tests/) (Jest + Supertest, covering auth, booking conflicts, and the schedule/roster endpoints) was written with Claude's help.
+
 ## Known Limitations
 
 - JWTs live in `localStorage`, which is convenient but XSS-exposed; moving to httpOnly cookies is a possible future improvement.
