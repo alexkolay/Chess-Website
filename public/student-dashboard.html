@@ -240,6 +240,13 @@
             cursor: default;
         }
 
+        .slot-cell.closed {
+            background: #fafafa;
+            border-color: #eee;
+            color: #ccc;
+            cursor: default;
+        }
+
     </style>
 </head>
 <body>
@@ -467,7 +474,7 @@
 
 
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             // Check if user is logged in as student
             if (!Api.isLoggedIn()) {
                 window.location.href = 'login.html';
@@ -527,6 +534,38 @@
                 if (p === 'PM' && h !== 12) h += 12;
                 if (p === 'AM' && h === 12) h = 0;
                 return `${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}`;
+            }
+
+            // ── Real coach availability, fetched from /api/schedules ───────────
+            const DAY_NAME_TO_NUM = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
+            const coachSchedules = {}; // coachId → { settings, slots } from the API
+
+            async function loadCoachSchedules() {
+                await Promise.all(myCoaches.map(async coach => {
+                    try {
+                        coachSchedules[coach._id] = await Api.getSchedule(coach._id);
+                    } catch (err) {
+                        coachSchedules[coach._id] = null; // fail open below rather than hide every slot
+                    }
+                }));
+            }
+
+            // A slot is bookable if it falls inside at least one of the student's
+            // coaches' configured hours (the student picks which coach when requesting).
+            function isWithinAnyCoachHours(dayName, displayTime) {
+                if (!myCoaches.length) return false;
+                const dayNum = DAY_NAME_TO_NUM[dayName];
+                const [h, m] = to24Hour(displayTime).split(':').map(Number);
+                const minutes = h * 60 + m;
+
+                return myCoaches.some(coach => {
+                    const settings = coachSchedules[coach._id] && coachSchedules[coach._id].settings;
+                    if (!settings) return true; // couldn't load this coach's schedule — don't hide slots over it
+                    if (!(settings.availableDays || []).includes(dayNum)) return false;
+                    const [startH, startM] = (settings.startTime || '09:00').split(':').map(Number);
+                    const [endH, endM] = (settings.endTime || '17:00').split(':').map(Number);
+                    return minutes >= startH * 60 + startM && minutes < endH * 60 + endM;
+                });
             }
 
             // Set student information
@@ -866,6 +905,8 @@
                         } else if (lesson && lesson.status === 'scheduled') {
                             const coachName = (lesson.coach && (lesson.coach.profile?.name || lesson.coach.username)) || 'Coach';
                             html += `<div class="slot-cell confirmed">${time}<br><small>${coachName}</small></div>`;
+                        } else if (!isWithinAnyCoachHours(day, time)) {
+                            html += `<div class="slot-cell closed">${time}<br><small>Closed</small></div>`;
                         } else {
                             html += `<div class="slot-cell available" onclick="openSlotRequest('${day}', '${time}')">${time}<br><small>Request</small></div>`;
                         }
@@ -966,6 +1007,7 @@
 
             // Initial setup
             updateWeekDisplay();
+            await loadCoachSchedules();
             renderAvailableSlots();
 
             // Logout handler

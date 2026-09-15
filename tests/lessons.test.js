@@ -138,6 +138,41 @@ describe('PATCH /api/lessons/:id/status (accepting/rejecting requests)', () => {
     });
 });
 
+describe('booking flips the correct slot in the coach’s Schedule doc', () => {
+    it('marks exactly the requested date+time as booked, not some other slot that merely shares the date or time', async () => {
+        const { coach, student } = await makeCoachAndStudent();
+
+        // Several slots sharing a date with other times, and a time with other dates —
+        // this is what exposes a query that matches 'slots.date' and 'slots.time' as
+        // independent conditions instead of requiring both on the same array element.
+        const slots = [
+            { date: '2026-10-05', time: '09:00', status: 'available' },
+            { date: '2026-10-05', time: '10:00', status: 'available' },
+            { date: '2026-10-06', time: '09:00', status: 'available' },
+            { date: '2026-10-06', time: '10:00', status: 'available' }
+        ];
+        await request(app)
+            .put(`/api/schedules/coach/${coach.user.id}`)
+            .set('Authorization', `Bearer ${coach.token}`)
+            .send({ settings: { startTime: '09:00', endTime: '11:00', timeIncrement: 60, availableDays: [1, 2] }, slots });
+
+        await request(app)
+            .post('/api/lessons/request')
+            .set('Authorization', `Bearer ${student.token}`)
+            .send({ coachId: coach.user.id, date: '2026-10-06', time: '10:00', duration: 60 });
+
+        const schedule = await request(app)
+            .get(`/api/schedules/coach/${coach.user.id}`)
+            .set('Authorization', `Bearer ${coach.token}`);
+
+        const byKey = Object.fromEntries(schedule.body.slots.map(s => [`${s.date}|${s.time}`, s.status]));
+        expect(byKey['2026-10-06|10:00']).toBe('booked');
+        expect(byKey['2026-10-05|09:00']).toBe('available');
+        expect(byKey['2026-10-05|10:00']).toBe('available');
+        expect(byKey['2026-10-06|09:00']).toBe('available');
+    });
+});
+
 describe('coach-side conflicts (two students, one coach, overlapping times)', () => {
     it('lets the coach accept the first request but rejects accepting a second one that overlaps it', async () => {
         const { coach, student } = await makeCoachAndStudent();

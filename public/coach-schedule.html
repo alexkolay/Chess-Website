@@ -434,7 +434,7 @@
 
     <script src="api.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             // Check if user is logged in as coach
             if (!Api.isLoggedIn()) {
                 window.location.href = 'login.html';
@@ -448,6 +448,84 @@
 
             // Helper: Get current username
             const username = currentUser.username;
+
+            // ── Availability, backed by the real /api/schedules endpoints ──────
+            const DAY_NAME_TO_NUM = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
+            const DAY_NUM_TO_NAME = Object.fromEntries(Object.entries(DAY_NAME_TO_NUM).map(([name, num]) => [num, name]));
+            const DEFAULT_SETTINGS_FORM = { startTime: '09:00', endTime: '17:00', timeIncrement: '30', days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] };
+
+            let currentSchedule = null;
+            async function loadCurrentSchedule() {
+                try {
+                    currentSchedule = await Api.getSchedule(currentUser.id);
+                } catch (err) {
+                    currentSchedule = { settings: null, slots: [] };
+                }
+                return currentSchedule;
+            }
+
+            // Turn start/end/increment/days into concrete YYYY-MM-DD + HH:MM slots,
+            // covering enough weeks ahead to comfortably outlast student-side navigation.
+            function generateSlotsFromSettingsForm(settingsForm, weeksAhead = 6) {
+                const availableDayNums = (settingsForm.days || []).map(d => DAY_NAME_TO_NUM[d]);
+                const incrementMin = parseInt(settingsForm.timeIncrement) || 60;
+                const [startH, startM] = (settingsForm.startTime || '09:00').split(':').map(Number);
+                const [endH, endM] = (settingsForm.endTime || '17:00').split(':').map(Number);
+                const startOfDay = new Date();
+                startOfDay.setHours(0, 0, 0, 0);
+
+                const slots = [];
+                for (let i = 0; i < weeksAhead * 7; i++) {
+                    const day = new Date(startOfDay);
+                    day.setDate(day.getDate() + i);
+                    if (!availableDayNums.includes(day.getDay())) continue;
+
+                    const dateStr = day.toISOString().slice(0, 10);
+                    let minutes = startH * 60 + startM;
+                    const endMinutes = endH * 60 + endM;
+                    while (minutes < endMinutes) {
+                        const h = String(Math.floor(minutes / 60)).padStart(2, '0');
+                        const m = String(minutes % 60).padStart(2, '0');
+                        slots.push({ date: dateStr, time: `${h}:${m}`, status: 'available' });
+                        minutes += incrementMin;
+                    }
+                }
+                return slots;
+            }
+
+            // Keep already-booked slots intact when regenerating from new settings,
+            // instead of silently reverting them to "available".
+            function mergeWithExistingBookings(newSlots, existingSlots) {
+                const bookedByKey = {};
+                (existingSlots || []).forEach(slot => {
+                    if (slot.status === 'booked') bookedByKey[`${slot.date}|${slot.time}`] = slot;
+                });
+                const merged = newSlots.map(slot => {
+                    const key = `${slot.date}|${slot.time}`;
+                    return bookedByKey[key] || slot;
+                });
+                const generatedKeys = new Set(newSlots.map(slot => `${slot.date}|${slot.time}`));
+                Object.entries(bookedByKey).forEach(([key, slot]) => {
+                    if (!generatedKeys.has(key)) merged.push(slot);
+                });
+                return merged;
+            }
+
+            async function saveScheduleFromSettingsForm(settingsForm, { preserveBookings }) {
+                const settings = {
+                    startTime: settingsForm.startTime,
+                    endTime: settingsForm.endTime,
+                    timeIncrement: parseInt(settingsForm.timeIncrement),
+                    availableDays: (settingsForm.days || []).map(d => DAY_NAME_TO_NUM[d])
+                };
+                const generated = generateSlotsFromSettingsForm(settingsForm);
+                const slots = preserveBookings
+                    ? mergeWithExistingBookings(generated, currentSchedule && currentSchedule.slots)
+                    : generated;
+
+                currentSchedule = await Api.updateSchedule(currentUser.id, { settings, slots });
+                return currentSchedule;
+            }
             
             // Debug function to check if modal exists
             function debugModalCheck() {
@@ -942,13 +1020,15 @@
             });
             // Schedule Settings Functions
             function loadScheduleSettings() {
-                const settings = JSON.parse(localStorage.getItem(`scheduleSettings_${username}`) || '{}');
+                const settings = (currentSchedule && currentSchedule.settings) || {};
                 document.getElementById('start-time').value = settings.startTime || '09:00';
                 document.getElementById('end-time').value = settings.endTime || '17:00';
-                document.getElementById('time-increment').value = settings.timeIncrement || '30'; // Default to 30 minutes
-                
+                document.getElementById('time-increment').value = settings.timeIncrement || 30;
+
                 // Set checked days
-                const selectedDays = settings.days || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+                const selectedDays = (settings.availableDays && settings.availableDays.length)
+                    ? settings.availableDays.map(n => DAY_NUM_TO_NAME[n])
+                    : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
                 document.querySelectorAll('input[name="days"]').forEach(checkbox => {
                     checkbox.checked = selectedDays.includes(checkbox.value);
                 });
@@ -994,48 +1074,42 @@
                 scheduleSettingsModal.style.display = 'none';
             };
 
-            scheduleSettingsForm.addEventListener('submit', function(e) {
+            scheduleSettingsForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 const formData = new FormData(scheduleSettingsForm);
-                const settings = {
+                const settingsForm = {
                     startTime: formData.get('startTime'),
                     endTime: formData.get('endTime'),
                     timeIncrement: formData.get('timeIncrement'),
                     days: Array.from(formData.getAll('days'))
                 };
-                
-                // Save settings
-                localStorage.setItem(`scheduleSettings_${username}`, JSON.stringify(settings));
-                
-                // Create new schedule based on settings
-                const newSchedule = createScheduleFromSettings(settings);
-                
-                // Save the new schedule for current week
-                saveSchedule(newSchedule, getSelectedWeekDate());
-                
-                // Re-render the schedule
-                renderSchedule();
-                
-                scheduleSettingsModal.style.display = 'none';
-                alert('Schedule settings updated successfully!');
+
+                const submitBtn = scheduleSettingsForm.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                try {
+                    await saveScheduleFromSettingsForm(settingsForm, { preserveBookings: true });
+                    renderSchedule();
+                    scheduleSettingsModal.style.display = 'none';
+                    alert('Schedule settings updated successfully!');
+                } catch (err) {
+                    alert(err.message || 'Could not save schedule settings. Please try again.');
+                } finally {
+                    submitBtn.disabled = false;
+                }
             });
 
-            resetScheduleBtn.addEventListener('click', function() {
-                if (confirm('Are you sure you want to reset your schedule? This will clear all booked lessons.')) {
-                    const settings = {
-                        startTime: '09:00',
-                        endTime: '17:00',
-                        timeIncrement: '30',
-                        days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
-                    };
-                    
-                    localStorage.setItem(`scheduleSettings_${username}`, JSON.stringify(settings));
-                    const newSchedule = createScheduleFromSettings(settings);
-                    saveSchedule(newSchedule, getSelectedWeekDate());
+            resetScheduleBtn.addEventListener('click', async function() {
+                if (!confirm('Are you sure you want to reset your schedule to the default hours? This regenerates your available time slots (existing lesson bookings are kept).')) {
+                    return;
+                }
+                try {
+                    await saveScheduleFromSettingsForm(DEFAULT_SETTINGS_FORM, { preserveBookings: true });
+                    loadScheduleSettings();
                     renderSchedule();
-                    
                     scheduleSettingsModal.style.display = 'none';
                     alert('Schedule has been reset to default settings.');
+                } catch (err) {
+                    alert(err.message || 'Could not reset schedule. Please try again.');
                 }
             });
 
@@ -1092,11 +1166,10 @@
             });
 
 
-            // Check if coach needs to set up schedule settings (first time login)
+            // Check if coach needs to set up schedule settings (first time login —
+            // no schedule has ever been saved to the server for this coach)
             function checkFirstTimeSetup() {
-                const settings = localStorage.getItem(`scheduleSettings_${username}`);
-                if (!settings) {
-                    // First time login - show settings modal
+                if (!currentSchedule || !currentSchedule._id) {
                     setTimeout(() => {
                         loadScheduleSettings();
                         scheduleSettingsModal.style.display = 'block';
@@ -1116,9 +1189,11 @@
             // Remove all lesson requests section and related JS from this file. The schedule grid and logic should remain as originally implemented.
             
             // Initialize the schedule display
+            await loadCurrentSchedule();
+            checkFirstTimeSetup();
             updateWeekDisplay();
             renderSchedule();
-            
+
             // Handle logout
             document.getElementById('logout-btn').addEventListener('click', function(e) {
                 e.preventDefault();

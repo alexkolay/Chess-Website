@@ -95,7 +95,7 @@ router.post('/', [auth, isCoach], async (req, res) => {
         const dateStr = new Date(dateTime).toISOString().slice(0, 10);
         const timeStr = new Date(dateTime).toISOString().slice(11, 16);
         await Schedule.findOneAndUpdate(
-            { coach: req.user.userId, 'slots.date': dateStr, 'slots.time': timeStr },
+            { coach: req.user.userId, slots: { $elemMatch: { date: dateStr, time: timeStr } } },
             { $set: { 'slots.$.status': 'booked', 'slots.$.lesson': lesson._id } }
         );
 
@@ -143,9 +143,7 @@ router.post('/request', [auth, isStudent], async (req, res) => {
         await Schedule.findOneAndUpdate(
             {
                 coach: coachId,
-                'slots.date': date,
-                'slots.time': time.slice(0, 5),
-                'slots.status': 'available'
+                slots: { $elemMatch: { date, time: time.slice(0, 5), status: 'available' } }
             },
             { $set: { 'slots.$.status': 'booked', 'slots.$.lesson': lesson._id } }
         );
