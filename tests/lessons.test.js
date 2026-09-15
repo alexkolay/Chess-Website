@@ -138,6 +138,67 @@ describe('PATCH /api/lessons/:id/status (accepting/rejecting requests)', () => {
     });
 });
 
+describe('coach-side conflicts (two students, one coach, overlapping times)', () => {
+    it('lets the coach accept the first request but rejects accepting a second one that overlaps it', async () => {
+        const { coach, student } = await makeCoachAndStudent();
+        const student2 = await registerAndLogin({
+            username: 'student2', email: 'student2@example.com', password: 'password123', role: 'student'
+        });
+
+        // Both students request the same coach for overlapping times. Requesting doesn't
+        // check the coach's calendar (only the student's), so both stay pending.
+        const req1 = await request(app)
+            .post('/api/lessons/request')
+            .set('Authorization', `Bearer ${student.token}`)
+            .send({ coachId: coach.user.id, date: '2026-10-01', time: '10:00', duration: 60 });
+        const req2 = await request(app)
+            .post('/api/lessons/request')
+            .set('Authorization', `Bearer ${student2.token}`)
+            .send({ coachId: coach.user.id, date: '2026-10-01', time: '10:30', duration: 60 });
+
+        expect(req1.status).toBe(201);
+        expect(req2.status).toBe(201);
+
+        const accept1 = await request(app)
+            .patch(`/api/lessons/${req1.body._id}/status`)
+            .set('Authorization', `Bearer ${coach.token}`)
+            .send({ status: 'scheduled' });
+        expect(accept1.status).toBe(200);
+
+        // Accepting the second one would double-book the coach at 10:30.
+        const accept2 = await request(app)
+            .patch(`/api/lessons/${req2.body._id}/status`)
+            .set('Authorization', `Bearer ${coach.token}`)
+            .send({ status: 'scheduled' });
+        expect(accept2.status).toBe(409);
+    });
+
+    it('rejects a coach directly booking a lesson that overlaps one they already have scheduled', async () => {
+        const { coach, student } = await makeCoachAndStudent();
+        const student2 = await registerAndLogin({
+            username: 'student2', email: 'student2@example.com', password: 'password123', role: 'student'
+        });
+
+        const first = await request(app)
+            .post('/api/lessons')
+            .set('Authorization', `Bearer ${coach.token}`)
+            .send({
+                student: student.user.id, dateTime: '2026-10-01T10:00:00.000Z',
+                duration: 60, topic: 'Openings', price: 40
+            });
+        expect(first.status).toBe(201);
+
+        const overlapping = await request(app)
+            .post('/api/lessons')
+            .set('Authorization', `Bearer ${coach.token}`)
+            .send({
+                student: student2.user.id, dateTime: '2026-10-01T10:30:00.000Z',
+                duration: 60, topic: 'Endgames', price: 40
+            });
+        expect(overlapping.status).toBe(409);
+    });
+});
+
 describe('GET /api/lessons', () => {
     it('only returns lessons belonging to the logged-in user', async () => {
         const { coach, student } = await makeCoachAndStudent();
