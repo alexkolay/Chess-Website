@@ -1,8 +1,8 @@
 # Chess Coaching Platform
 
-A web application connecting chess coaches with students — coaches manage their availability and lesson requests, students browse coaches and book open slots. Built as a static HTML/CSS/JS frontend backed by a Node.js/Express API and MongoDB.
+This is a small booking app for chess coaching: coaches set their availability and manage lesson requests, students browse coaches and book open slots. It's a plain HTML/CSS/JS frontend talking to a Node/Express API backed by MongoDB — no framework, no build step.
 
-> **Status:** Under active development, not yet released. Core booking flow works end to end, but a few pieces (see [Known Limitations](#known-limitations)) still need finishing.
+**Status:** still a work in progress, not released yet. The core flow — browse a coach, request a slot, coach accepts, lesson gets scheduled — works end to end. A few things are still rough around the edges; see [Known Limitations](#known-limitations).
 
 ## How It Works
 
@@ -22,7 +22,7 @@ Browser (static .html pages)
                     User · Lesson · Schedule
 ```
 
-Every page loads `api.js`, a small client that wraps `fetch` calls to the Express API and stores the JWT session token in `localStorage`. There is no server-rendered templating — the HTML pages fetch data from the API and update the DOM directly.
+Every page loads `api.js`, a small client that wraps `fetch` calls to the Express API and stores the JWT session token in `localStorage`. There's no server-rendered templating — pages fetch their data from the API and update the DOM directly, so you can open any HTML file and it'll talk to whatever server is running on port 3001.
 
 ## Getting Started
 
@@ -42,12 +42,13 @@ Every page loads `api.js`, a small client that wraps `fetch` calls to the Expres
    MONGODB_URI=mongodb://127.0.0.1:27017/chess-coaching
    JWT_SECRET=<your-secret>
    PORT=3001
-   SEED_COACH_PASSWORD=<password-for-seeded-coach-account>
+   SEED_COACH_PASSWORD=<password-for-the-seeded-coach-account>
    ```
-3. Seed a coach account (username `chessboss2020`):
+3. Seed a coach account so there's someone to log in as and book against:
    ```bash
    SEED_COACH_PASSWORD=<same-as-above> node server/seed.js
    ```
+   Check `server/seed.js` for the username it creates — it's not meant to be a real credential, just a starting point for local testing. Feel free to register your own accounts through `register.html` instead.
 
 ### Running
 
@@ -68,6 +69,7 @@ server/
   models/          Mongoose schemas (User, Lesson, Schedule)
   middleware/       JWT auth + role guards (isCoach, isStudent)
   seed.js           Creates/resets the default coach account
+tests/             Jest + Supertest API tests
 start.sh / stop.sh  Local MongoDB + server lifecycle scripts
 ```
 
@@ -109,11 +111,29 @@ All routes are prefixed with `/api`. Most require a `Bearer` JWT (issued by `/au
 
 Booking uses server-side conflict detection and atomic slot locking, so two students can't double-book the same slot.
 
-## Authentication
+## Authentication & Access Control
 
-- JWT-based, 7-day expiry, stored client-side in `localStorage`.
-- Passwords hashed with bcrypt.
-- Role-based middleware (`isCoach`, `isStudent`) gates coach- and student-only routes.
+Logging in or registering gets you back a JWT, which the frontend stashes in `localStorage` and sends as a `Bearer` token on every API call after that. Tokens are valid for 7 days, so a session survives closing the tab, but eventually expires and you have to log back in.
+
+Passwords are never stored in plain text — they go through bcrypt before touching the database, and the hash is explicitly stripped out of anything the API sends back to the client.
+
+Authorization happens in two layers:
+
+1. **Is this a real, logged-in user at all?** The `auth` middleware (`server/middleware/auth.js`) checks for a valid token on every protected route and rejects the request with a 401 if it's missing or invalid.
+2. **Is this user allowed to do *this particular thing*?** Some routes are role-gated with `isCoach` / `isStudent` middleware — e.g. only coaches can accept a lesson request or edit their own schedule. Beyond role checks, a few routes also verify *ownership*: a coach can only edit their own schedule (`schedules.js` checks `req.user.userId` against the `:coachId` in the URL), and only the two people on a lesson — the coach and the student — can change its status. This is enforced server-side, not just hidden in the UI, so hitting the API directly with someone else's ID doesn't get you anywhere.
+
+## Testing
+
+There's a Jest + Supertest suite under [`tests/`](tests/) that exercises the API directly (no browser needed) — registration and login, the auth guard itself, booking conflicts, and the access-control rules described above (e.g. a student can't accept their own lesson request, a coach can't edit another coach's schedule).
+
+Tests run against a real MongoDB instance, just a separate database (`chess-coaching-test`) so they never touch your actual data. Each test file wipes its collections between tests.
+
+```bash
+# MongoDB needs to be running first (e.g. via ./start.sh, or just start mongod yourself)
+npm test
+```
+
+If you're adding a new route or changing how bookings/conflicts work, it's worth adding a case here — it's much faster than manually registering test accounts through the UI every time.
 
 ## Known Limitations
 
