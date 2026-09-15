@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const User = require('../models/User');
-const { auth } = require('../middleware/auth');
+const { auth, isCoach } = require('../middleware/auth');
 
 // Get all coaches with student counts (public — no auth required)
 router.get('/coaches', async (req, res) => {
@@ -25,6 +25,18 @@ router.get('/coaches', async (req, res) => {
         }));
 
         res.json(result);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// Get the students linked to the logged-in coach (coach auth required)
+router.get('/students', [auth, isCoach], async (req, res) => {
+    try {
+        const students = await User.find({ role: 'student', coaches: req.user.userId })
+            .select('username email profile')
+            .sort({ 'profile.name': 1 });
+        res.json(students);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }

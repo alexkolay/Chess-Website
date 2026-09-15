@@ -83,6 +83,65 @@ describe('GET /api/users/coaches (public directory)', () => {
     });
 });
 
+describe('GET /api/users/students (coach roster)', () => {
+    it('lists only students linked to the logged-in coach', async () => {
+        const coach = await registerAndLogin({
+            username: 'coach1', email: 'coach1@example.com', password: 'password123', role: 'coach'
+        });
+        const otherCoach = await registerAndLogin({
+            username: 'coach2', email: 'coach2@example.com', password: 'password123', role: 'coach'
+        });
+        await registerAndLogin({
+            username: 'student1', email: 'student1@example.com', password: 'password123',
+            role: 'student', coachUsername: 'coach1'
+        });
+        await registerAndLogin({
+            username: 'student2', email: 'student2@example.com', password: 'password123',
+            role: 'student', coachUsername: 'coach2'
+        });
+
+        const res = await request(app)
+            .get('/api/users/students')
+            .set('Authorization', `Bearer ${coach.token}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toHaveLength(1);
+        expect(res.body[0].username).toBe('student1');
+        expect(res.body[0].password).toBeUndefined();
+
+        const otherRes = await request(app)
+            .get('/api/users/students')
+            .set('Authorization', `Bearer ${otherCoach.token}`);
+        expect(otherRes.body).toHaveLength(1);
+        expect(otherRes.body[0].username).toBe('student2');
+    });
+
+    it('rejects a student trying to fetch a roster', async () => {
+        const student = await registerAndLogin({
+            username: 'student1', email: 'student1@example.com', password: 'password123', role: 'student'
+        });
+
+        const res = await request(app)
+            .get('/api/users/students')
+            .set('Authorization', `Bearer ${student.token}`);
+
+        expect(res.status).toBe(403);
+    });
+
+    it('returns an empty list for a coach with no students yet', async () => {
+        const coach = await registerAndLogin({
+            username: 'coach1', email: 'coach1@example.com', password: 'password123', role: 'coach'
+        });
+
+        const res = await request(app)
+            .get('/api/users/students')
+            .set('Authorization', `Bearer ${coach.token}`);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toEqual([]);
+    });
+});
+
 describe('POST /api/users/add-coach', () => {
     it('lets a student add a coach', async () => {
         const coach = await registerAndLogin({

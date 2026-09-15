@@ -95,6 +95,10 @@ const Api = {
         return this._fetch(`/api/users/${id}`);
     },
 
+    getMyStudents() {
+        return this._fetch('/api/users/students');
+    },
+
     addCoach(coachId) {
         return this._fetch('/api/users/add-coach', {
             method: 'POST',

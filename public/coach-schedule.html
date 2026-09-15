@@ -289,12 +289,16 @@
             <h2>Schedule New Lesson</h2>
             <form id="schedule-form">
                 <div class="form-group">
-                    <label for="student-name">Student Name</label>
+                    <label for="student-name">Student</label>
                     <select id="student-name" required></select>
                 </div>
                 <div class="form-group">
-                    <label for="student-rating">Current Rating</label>
-                    <input type="number" id="student-rating" min="0" max="3000" required>
+                    <label for="lesson-duration">Duration</label>
+                    <select id="lesson-duration" required>
+                        <option value="30">30 minutes</option>
+                        <option value="60" selected>60 minutes</option>
+                        <option value="90">90 minutes</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label for="lesson-focus">Lesson Focus</label>
@@ -370,24 +374,15 @@
     <div id="manage-students-modal" class="modal">
         <div class="modal-content" style="max-width: 700px;">
             <span class="close-modal" id="close-manage-students">&times;</span>
-            <h2>Manage Students</h2>
+            <h2>My Students</h2>
             <div class="stats" style="margin-bottom: 1rem;">
                 <div class="stat-card">
                     <div class="stat-number" id="ms-total-students">0</div>
                     <div class="stat-label">Total Students</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="ms-unassigned-students">0</div>
-                    <div class="stat-label">Unassigned Students</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="ms-assigned-students">0</div>
-                    <div class="stat-label">Assigned Students</div>
-                </div>
             </div>
             <div class="action-buttons" style="margin-bottom: 1rem;">
                 <button class="btn btn-primary" id="ms-refresh-btn">Refresh List</button>
-                <button class="btn btn-danger" id="ms-remove-all-btn">Remove All Unassigned</button>
             </div>
             <div class="user-list" id="ms-user-list" style="max-height: 350px; overflow-y: auto;"></div>
         </div>
@@ -781,6 +776,8 @@
                         } else {
                             el.className = 'time-slot available';
                             el.innerHTML = `<strong>${time}</strong><br>Available`;
+                            el.style.cursor = 'pointer';
+                            el.onclick = () => showModal(day, time);
                         }
                         col.appendChild(el);
                     });
@@ -799,36 +796,58 @@
             const closeScheduleSettings = document.getElementById('close-schedule-settings');
             const scheduleSettingsForm = document.getElementById('schedule-settings-form');
             const resetScheduleBtn = document.getElementById('reset-schedule');
-            function populateStudentDropdown() {
+            async function populateStudentDropdown() {
                 const studentNameSelect = document.getElementById('student-name');
-                studentNameSelect.innerHTML = '';
-                const keys = Object.keys(localStorage);
-                const userKeys = keys.filter(key => key.startsWith('userData_'));
-                let foundStudent = false;
-                userKeys.forEach(key => {
-                    const userData = JSON.parse(localStorage.getItem(key));
-                    if (userData && userData.userType === 'student') {
-                        foundStudent = true;
+                studentNameSelect.innerHTML = '<option value="" disabled selected>Loading students…</option>';
+                try {
+                    const students = await Api.getMyStudents();
+                    studentNameSelect.innerHTML = '';
+                    if (!students.length) {
                         const option = document.createElement('option');
-                        option.value = userData.name || userData.username;
-                        option.textContent = userData.name || userData.username;
+                        option.value = '';
+                        option.textContent = 'No students yet';
+                        option.disabled = true;
+                        option.selected = true;
                         studentNameSelect.appendChild(option);
+                        return;
                     }
-                });
-                if (!foundStudent) {
-                    const option = document.createElement('option');
-                    option.value = '';
-                    option.textContent = 'No students registered';
-                    option.disabled = true;
-                    option.selected = true;
-                    studentNameSelect.appendChild(option);
+                    students.forEach(student => {
+                        const option = document.createElement('option');
+                        option.value = student._id;
+                        const name = (student.profile && student.profile.name) || student.username;
+                        const rating = student.profile && student.profile.rating ? ` (Rating: ${student.profile.rating})` : '';
+                        option.textContent = `${name}${rating}`;
+                        studentNameSelect.appendChild(option);
+                    });
+                } catch (err) {
+                    studentNameSelect.innerHTML = '<option value="" disabled selected>Could not load students</option>';
                 }
             }
-            function showModal(day, time) {
+            // Day name → concrete YYYY-MM-DD for the currently displayed week
+            function getDateForDay(dayName) {
+                const idx = ['Monday','Tuesday','Wednesday','Thursday','Friday'].indexOf(dayName);
+                if (idx < 0) return null;
+                const date = new Date(getSelectedWeekDate());
+                date.setDate(date.getDate() + idx);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const dayOfMonth = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${dayOfMonth}`;
+            }
+            // "9:00 AM" → "09:00"
+            function to24Hour(time12h) {
+                const m = time12h.match(/(\d+):(\d+)\s*(AM|PM)/i);
+                if (!m) return '09:00';
+                let h = parseInt(m[1]), min = parseInt(m[2]), p = m[3].toUpperCase();
+                if (p === 'PM' && h !== 12) h += 12;
+                if (p === 'AM' && h === 12) h = 0;
+                return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+            }
+            async function showModal(day, time) {
                 document.getElementById('selected-day').value = day;
                 document.getElementById('selected-time').value = time;
-                populateStudentDropdown();
                 modal.style.display = 'block';
+                await populateStudentDropdown();
             }
             function hideModal() {
                 modal.style.display = 'none';
@@ -850,7 +869,7 @@
                     document.getElementById('rating-setup-modal').style.display = 'none';
                 }
             };
-            scheduleForm.addEventListener('submit', function(e) {
+            scheduleForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 const day = document.getElementById('selected-day').value;
                 const time = document.getElementById('selected-time').value;
@@ -858,29 +877,31 @@
                     alert('Cannot schedule a lesson in the past. Please select a future time slot.');
                     return;
                 }
-                const studentName = document.getElementById('student-name').value;
-                const studentRating = document.getElementById('student-rating').value;
+                const studentId = document.getElementById('student-name').value;
+                if (!studentId) {
+                    alert('Please select a student.');
+                    return;
+                }
+                const duration = parseInt(document.getElementById('lesson-duration').value) || 60;
                 const lessonFocus = document.getElementById('lesson-focus').value;
                 const notes = document.getElementById('lesson-notes').value;
-                if (!sampleSchedule.students) {
-                    sampleSchedule.students = {};
+                const hourlyRate = currentUser.hourlyRate || 50;
+                const price = Math.round(hourlyRate * (duration / 60));
+                const dateStr = getDateForDay(day);
+                const dateTime = `${dateStr}T${to24Hour(time)}:00`;
+
+                const submitBtn = scheduleForm.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                try {
+                    await Api.createLesson({ student: studentId, dateTime, duration, topic: lessonFocus, price, notes });
+                    renderSchedule();
+                    hideModal();
+                    alert(`Lesson scheduled for ${day} at ${time}`);
+                } catch (err) {
+                    alert(err.message || 'Could not schedule the lesson. Please try again.');
+                } finally {
+                    submitBtn.disabled = false;
                 }
-                sampleSchedule.students[studentName] = {
-                    rating: parseInt(studentRating),
-                    focus: lessonFocus,
-                    notes: notes,
-                    coach: coachData.name || coachName
-                };
-                const daySchedule = sampleSchedule.weeklySchedule[day];
-                const timeSlot = daySchedule.find(slot => slot.time === time);
-                if (timeSlot) {
-                    timeSlot.status = 'booked';
-                    timeSlot.student = studentName;
-                }
-                saveSchedule(sampleSchedule, getSelectedWeekDate());
-                renderSchedule();
-                hideModal();
-                alert(`Lesson scheduled with ${studentName} for ${day} at ${time}`);
             });
             // --- Manage Students Modal Logic ---
             const manageStudentsBtn = document.getElementById('manage-students');
@@ -888,133 +909,43 @@
             const closeManageStudents = document.getElementById('close-manage-students');
             const msUserList = document.getElementById('ms-user-list');
             const msTotalStudents = document.getElementById('ms-total-students');
-            const msUnassignedStudents = document.getElementById('ms-unassigned-students');
-            const msAssignedStudents = document.getElementById('ms-assigned-students');
             const msRefreshBtn = document.getElementById('ms-refresh-btn');
-            const msRemoveAllBtn = document.getElementById('ms-remove-all-btn');
-            function msLoadUsers() {
-                let totalStudents = 0;
-                let unassignedStudents = 0;
-                let assignedStudents = 0;
-                let usersHTML = '';
-                const keys = Object.keys(localStorage);
-                const userKeys = keys.filter(key => key.startsWith('userData_'));
-                userKeys.forEach(key => {
-                    const userData = JSON.parse(localStorage.getItem(key));
-                    if (userData && userData.userType === 'student') {
-                        totalStudents++;
-                        const isAssigned = userData.coach &&
-                            userData.coach !== 'Available Coach' &&
-                            userData.coach !== 'Unassigned' &&
-                            userData.coach.trim() !== '';
-                        if (isAssigned) {
-                            assignedStudents++;
-                            usersHTML += `
-                                <div class="user-card assigned">
-                                    <div class="user-header">
-                                        <div class="user-type student">Assigned Student</div>
-                                    </div>
-                                    <div class="user-name">${userData.name || userData.username}</div>
-                                    <div class="user-details">
-                                        <p><strong>Email:</strong> ${userData.email || 'N/A'}</p>
-                                        <p><strong>Rating:</strong> ${userData.rating || 'Not specified'}</p>
-                                        <p><strong>Coach:</strong> ${userData.coach}</p>
-                                    </div>
-                                    <button class="remove-btn" onclick="window.msRemoveUser('${userData.username}')">Remove Student</button>
-                                </div>
-                            `;
-                        } else {
-                            unassignedStudents++;
-                            usersHTML += `
-                                <div class="user-card">
-                                    <div class="user-header">
-                                        <div class="user-type unassigned">Unassigned Student</div>
-                                    </div>
-                                    <div class="user-name">${userData.name || userData.username}</div>
-                                    <div class="user-details">
-                                        <p><strong>Email:</strong> ${userData.email || 'N/A'}</p>
-                                        <p><strong>Rating:</strong> ${userData.rating || 'Not specified'}</p>
-                                        <p><strong>Coach:</strong> ${userData.coach || 'No coach assigned'}</p>
-                                    </div>
-                                    <button class="remove-btn" onclick="window.msRemoveUser('${userData.username}')">Remove Student</button>
-                                </div>
-                            `;
-                        }
-                    }
-                });
-                msUserList.innerHTML = usersHTML || '<p style="grid-column: 1 / -1; text-align: center; color: #666;">No students found.</p>';
-                msTotalStudents.textContent = totalStudents;
-                msUnassignedStudents.textContent = unassignedStudents;
-                msAssignedStudents.textContent = assignedStudents;
+
+            function escapeHtml(str) {
+                const div = document.createElement('div');
+                div.textContent = str ?? '';
+                return div.innerHTML;
             }
-            window.msRemoveUser = function(username) {
-                if (confirm(`Are you sure you want to remove the student "${username}"? This will also remove all their lessons from your schedule.`)) {
-                    localStorage.removeItem('userData_' + username);
-                    let schedule = loadSchedule(getSelectedWeekDate());
-                    let changed = false;
-                    Object.keys(schedule.weeklySchedule).forEach(day => {
-                        schedule.weeklySchedule[day].forEach(slot => {
-                            if (slot.status === 'booked' && slot.student === username) {
-                                slot.status = 'available';
-                                delete slot.student;
-                                changed = true;
-                            }
-                        });
-                    });
-                    if (schedule.students && schedule.students[username]) {
-                        delete schedule.students[username];
-                        changed = true;
-                    }
-                    if (changed) saveSchedule(schedule, getSelectedWeekDate());
-                    msLoadUsers();
-                    renderSchedule();
-                    alert(`Student "${username}" and all their lessons have been removed.`);
-                }
-            };
-            msRemoveAllBtn.addEventListener('click', function() {
-                const unassignedCount = parseInt(msUnassignedStudents.textContent);
-                if (unassignedCount === 0) {
-                    alert('No unassigned students to remove.');
+
+            async function msLoadUsers() {
+                msUserList.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: #666;">Loading…</p>';
+                let students;
+                try {
+                    students = await Api.getMyStudents();
+                } catch (err) {
+                    msUserList.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: red;">Could not load students.</p>';
                     return;
                 }
-                if (confirm(`Are you sure you want to remove all ${unassignedCount} unassigned students? This action cannot be undone.`)) {
-                    const keys = Object.keys(localStorage);
-                    const userKeys = keys.filter(key => key.startsWith('userData_'));
-                    let removedCount = 0;
-                    userKeys.forEach(key => {
-                        const userData = JSON.parse(localStorage.getItem(key));
-                        if (userData && userData.userType === 'student') {
-                            const isAssigned = userData.coach &&
-                                userData.coach !== 'Available Coach' &&
-                                userData.coach !== 'Unassigned' &&
-                                userData.coach.trim() !== '';
-                            if (!isAssigned) {
-                                localStorage.removeItem(key);
-                                let schedule = loadSchedule(getSelectedWeekDate());
-                                let changed = false;
-                                Object.keys(schedule.weeklySchedule).forEach(day => {
-                                    schedule.weeklySchedule[day].forEach(slot => {
-                                        if (slot.status === 'booked' && slot.student === userData.username) {
-                                            slot.status = 'available';
-                                            delete slot.student;
-                                            changed = true;
-                                        }
-                                    });
-                                });
-                                if (schedule.students && schedule.students[userData.username]) {
-                                    delete schedule.students[userData.username];
-                                    changed = true;
-                                }
-                                if (changed) saveSchedule(schedule, getSelectedWeekDate());
-                                removedCount++;
-                            }
-                        }
-                    });
-                    msLoadUsers();
-                    renderSchedule();
-                    alert(`${removedCount} unassigned students and their lessons have been removed.`);
-                }
-            });
+
+                msTotalStudents.textContent = students.length;
+                msUserList.innerHTML = students.length
+                    ? students.map(student => {
+                        const name = (student.profile && student.profile.name) || student.username;
+                        const rating = (student.profile && student.profile.rating) || 'Not specified';
+                        return `
+                            <div class="user-card assigned">
+                                <div class="user-header">
+                                    <div class="user-type student">Student</div>
+                                </div>
+                                <div class="user-name">${escapeHtml(name)}</div>
+                                <div class="user-details">
+                                    <p><strong>Email:</strong> ${escapeHtml(student.email || 'N/A')}</p>
+                                    <p><strong>Rating:</strong> ${escapeHtml(String(rating))}</p>
+                                </div>
+                            </div>`;
+                    }).join('')
+                    : '<p style="grid-column: 1 / -1; text-align: center; color: #666;">No students yet.</p>';
+            }
             msRefreshBtn.addEventListener('click', function() {
                 msLoadUsers();
             });

@@ -96,6 +96,7 @@ All routes are prefixed with `/api`. Most require a `Bearer` JWT (issued by `/au
 | POST | `/auth/login` | — | Log in, receive a JWT |
 | GET | `/auth/me` | JWT | Current user's profile |
 | GET | `/users/coaches` | — | List coaches |
+| GET | `/users/students` | Coach | The logged-in coach's linked students |
 | GET | `/users/:id` | JWT | Fetch a user by id |
 | PATCH | `/users/profile` | JWT | Update the logged-in user's profile |
 | POST | `/users/add-coach` | JWT | Add a coach account |
@@ -137,7 +138,6 @@ If you're adding a new route or changing how bookings/conflicts work, it's worth
 
 ## Known Limitations
 
-- `coach-schedule.html` and `student-dashboard.html` still read/write some schedule data via `localStorage` instead of the API — migration in progress.
 - JWTs live in `localStorage`, which is convenient but XSS-exposed; moving to httpOnly cookies is a possible future improvement.
 
 ## Troubleshooting
